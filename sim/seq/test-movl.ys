@@ -1,0 +1,3 @@
+	irmovl 1, %eax
+	rrmovl %eax, %ecx
+	halt
