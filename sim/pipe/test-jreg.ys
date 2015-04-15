@@ -1,0 +1,21 @@
+debut:
+	irmovl fin,%eax
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	jreg %eax
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+
+
+fin:	halt
+	.long 10

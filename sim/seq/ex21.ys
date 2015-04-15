@@ -1,0 +1,40 @@
+init:	
+	irmovl 1, %ebx	# b=1
+	irmovl 1, %ecx	# c=1
+	mrmovl n, %edx	# on copie le compteur sur edx
+
+	irmovl n, %esi	
+	iaddl 4, %esi	# on décale de 4
+	
+	isubl 1, %edx	# on retire 1 à n
+	
+preCalcul:	
+	jl fin 		# si n=0 on ne fait rien
+	rmmovl %ebx,(%esi) # on copie la valeur de ebx (1) en memoire
+	iaddl 4, %esi	
+	isubl 1, %edx
+
+	jl fin 		# si n=1 on ne met qu'une valeur dans le tableau (donc on ne calcule rien)
+	rmmovl %ebx, (%esi)	# on copie la valeur en mémoire
+	iaddl 4, %esi
+	isubl 1, %edx
+
+	
+debut:			# boucle for
+	jl fin
+	rrmovl %ebx, %eax	# a=b
+	rrmovl %ecx, %ebx	# c=b
+	addl %eax, %ecx		#c+=a
+	
+	rmmovl %ecx, (%esi)	# copie de c en memoire
+	iaddl 4, %esi
+	isubl 1, %edx
+	jmp debut		# si n>0, on retourne au debut de la boucle
+fin:
+	halt
+
+	.align 4
+	
+n:
+	.long 10
+

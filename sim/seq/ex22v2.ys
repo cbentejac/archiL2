@@ -1,0 +1,52 @@
+init:
+	mrmovl n, %ecx		# on ecrit n en memoire
+	isubl 1, %ecx		
+	jl fin			# si <0, alors n=0, donc fin du programme
+	irmovl 1, %eax		# premiere valeur du tableau
+	
+boucle:				# ecrit des valeurs dans un tableau
+	rmmovl %eax, t(%esi)	# ecrit la valeur
+	isubl 1, %ecx		# n-=1
+	jl pre_debut		# si n<0, toutes les valeurs ont ete ecrites
+	iaddl 4, %esi		# sinon, on passe a la case memoire suivante
+ 	iaddl 1, %eax		# t[i] = t[i-1]+1
+	jmp boucle		# on reitere la boucle
+
+pre_debut:
+	mrmovl t(%esi), %ebx	# cas particulier : on stocke la derniere valeur
+	mrmovl n, %ecx		# reinitialisation du compteur
+	jmp debut
+
+debut:
+	isubl 1, %ecx		# n-=1 : nombre de cases a remonter
+	je pre_deca			# ici, il faut n==0 pour arreter la boucle, sinon erreur (on economise une instruction, et on pourrait faire pareil ailleurs)
+	isubl 4, %esi 		# on recule d'une case memoire
+	jmp debut		# on reitere la boucle
+
+pre_deca:
+	mrmovl n, %ecx		# on reinitialise le compteur
+	isubl 1, %ecx
+	mrmovl t(%esi), %edx 	# gestion cas particulier, on stocke la premiere valeur
+	rmmovl %ebx, t(%esi)	# on remplace la premiere valeur par la derniere
+	jmp deca
+	
+deca:
+	isubl 1, %ecx		# compteur = nbr de cases restantes  a ecraser
+	jl fin			# si n<0, toutes les cases ont ete decalees
+	iaddl 4, %esi		# on avance d'une case memoire
+	mrmovl t(%esi), %ebx	# on stocke la valeur qui va etre ecrasee
+	rmmovl %edx, t(%esi)	# on ecrase la valeur
+	rrmovl %ebx, %edx	# comme c'est avec edx qu'on ecrase les valeurs et que c'est dans ebx que se trouve celle dont on aura besoin, on copie ebx dans edx
+	jmp deca
+
+fin:
+	halt
+	
+	
+	.align 4
+
+n:
+	.long 10
+
+	.pos 0x100
+t:

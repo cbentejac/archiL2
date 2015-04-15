@@ -1,0 +1,46 @@
+	irmovl Stack, %esp
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	irmovl 5, %ebp
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	pushl %ebp
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	rrmovl %esp, %ebp
+	nop
+	nop
+	nop
+	nop
+	nop
+	irmovl 17, %esp
+	nop
+	nop
+	nop
+	nop
+	nop
+	leave
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	
+	halt
+
+	.pos 0x200
+Stack:	

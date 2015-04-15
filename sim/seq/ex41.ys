@@ -1,0 +1,40 @@
+main:
+	
+
+sum:
+	irmovl 0, %eax		# sum=0
+	mrmovl 4(%esp), %ecx
+while:
+	andl %ecx, %ecx		# on verifie qu'on n'est pas a la fin de la pile
+	je fin
+	mrmovl (%ecx), %edx	# on met la valeur dans le registre edx
+	addl %edx, %eax		# ajout de la valeur a la somme
+	mrmovl 4(%ecx), %ecx	# on passe a la valeur suivante
+	jmp while
+fin:
+	ret
+
+	
+	.pos 0x100
+liste1a:
+	.long 1
+	.long liste1b
+liste1b:
+	.long 2
+	.long liste1c
+liste1c:
+	.long 3
+	.long liste1d
+liste1d:
+	.long 4
+	.long 0
+
+liste2a:
+	.long 10
+	.long liste2b
+liste2b:
+	.long 11
+	.long liste2c
+liste2c:
+	.long 12
+	.long 0

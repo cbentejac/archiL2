@@ -1,0 +1,15 @@
+	irmovl 5, %eax
+	irmovl 22, %ecx
+	rrmovl %eax, %edx	# copie le contenu de eax dans edx
+	addl %ecx, %edx		# addition eax et edx, stocke resultat dans edx
+	rrmovl %ecx, %ebx
+	subl %eax, %ebx		# soustrait eax à ebx, stocke resultat dans ebx
+	rrmovl %ecx, %esp
+	andl %eax, %esp		# conjonction entre eax et esp, stocke resultat dans esp
+	rrmovl %eax, %ebp
+	xorl %ecx, %ebp		# disjonction entre ecx et ebp, stocke resultat dans esp
+	rrmovl %eax, %esi
+	xorl %eax, %esi
+	halt
+
+	# pour qu'une disjonction soit nulle, il faut que les deux nombres soient egaux

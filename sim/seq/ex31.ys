@@ -1,0 +1,33 @@
+	irmovl Stack, %esp	# initialisation de la pile	
+	mrmovl b, %eax
+	mrmovl c, %edx
+	subl %edx, %eax
+	pushl %eax
+	mrmovl c, %eax
+	mrmovl d, %edx
+	subl %edx, %eax
+	popl %edx
+	andl %edx, %eax
+	pushl %eax
+	mrmovl a, %eax
+	mrmovl b, %edx
+	subl %edx, %eax
+	popl %edx
+	addl %edx, %eax
+	rmmovl %eax, r
+	halt
+
+	.align 4
+	.pos 0x100
+a:
+	.long 4
+b:
+	.long 3
+c:
+	.long 2
+d:
+	.long 1
+
+r:	
+	.pos 0x200
+Stack:	

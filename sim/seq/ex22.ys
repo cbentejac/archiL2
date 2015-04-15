@@ -1,0 +1,42 @@
+init:
+	mrmovl n, %ecx		# on copie n, la longueur du tableau
+	isubl 1, %ecx		# n-=1 pour avoir les indices (0 a n-1)
+	jl fin			# si n-1<0, alors n=0, on arrete le programme
+	irmovl 1, %eax		# premiere valeur du tableau
+	rrmovl %eax, %edx	# cas particulier : la premiere valeur se retrouvera a la fin
+
+boucle:				# ecriture en memoire d'un tab a n elements
+	rmmovl %eax, t(%esi)	# ecriture de l'element t[i]
+	isubl 1, %ecx		# on retire 1 a n, qui sert de compteur
+	jl pre_deca		# si n<0, alors tous les elements ont ete ecrits, on passe au decalage
+	iaddl 4, %esi		# sinon, on passe a la case memoire suivante
+	iaddl 1, %eax		# t[i] = t[i-1]+1
+	jmp boucle		# on recommence la boucle
+
+pre_deca:	 		
+	mrmovl n, %ecx		# reinitialisation d'un compteur
+	isubl 1, %ecx
+	mrmovl t(%esi), %ebx	# gestion du cas particulier, on stocke la derniere valeur
+	rmmovl %edx, t(%esi)
+	jmp deca
+	
+deca:
+	isubl 1, %ecx		# compteur = indice de la case a ecraser
+	jl fin			# si n<0, toutes les cases ont ete decalees
+	isubl 4, %esi		# on recule d'une case memoire
+	mrmovl t(%esi), %edx	# on stocke la valeur qui va etre ecrasee
+	rmmovl %ebx, t(%esi)	# on ecrase la valeur
+	rrmovl %edx, %ebx	# comme c'est avec ebx qu'on ecrase les valeurs et que c'est dans edx que se trouve celle dont on aura besoin, on copie edx dans ebx
+	jmp deca
+
+fin:
+	halt
+	
+	
+	.align 4
+
+n:
+	.long 10 
+
+	.pos 0x100
+t:

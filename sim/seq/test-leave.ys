@@ -1,0 +1,10 @@
+	irmovl Stack, %esp
+	irmovl 5, %ebp
+	pushl %ebp
+	rrmovl %esp, %ebp
+	irmovl 17, %esp
+	leave
+	halt
+
+	.pos 0x200
+Stack:	

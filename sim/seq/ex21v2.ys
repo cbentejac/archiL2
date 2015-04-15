@@ -1,0 +1,30 @@
+	irmovl 1, %eax
+	irmovl 1, %ebx
+	irmovl 2, %ecx
+	mrmovl n, %edx
+	subl %edx, %ecx 	#ecx = 2-n
+	irmovl 8, %ecx
+
+debut:
+	iaddl 0, %ecx
+	jg fin
+	rrmovl %eax, %edx
+	rrmovl %ebx, %eax
+	addl %edx, %ebx
+	rmmovl %ebx, fib(%esi)
+	iaddl 4, %esi
+	iaddl 1, %eax
+	jmp debut
+
+fin:
+	halt
+
+	.pos 0x100
+n:
+	.long 30
+
+fib:
+	.long 1
+	.long 1
+	
+	

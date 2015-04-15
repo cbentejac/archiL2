@@ -1,0 +1,11 @@
+	irmovl data, %eax
+	jmem 4(%eax)
+	nop
+	nop
+	nop
+suite:
+	halt
+	.pos 0x100
+data:
+	.long 0
+	.long suite

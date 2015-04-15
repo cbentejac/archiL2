@@ -1,0 +1,24 @@
+	irmovl Stack, %esp	# initialisation de la pile
+
+main:
+	irmovl 7, %eax
+	pushl %eax
+	irmovl 5, %eax
+	pushl %eax
+	call sub
+	iaddl 8, %esp
+	rmmovl %eax, res
+	halt
+		
+sub:	
+	mrmovl 4(%esp), %eax
+	mrmovl 8(%esp), %edx
+	subl %edx, %eax
+	ret
+	
+	.align 4
+res:
+	
+
+	.pos 0x200
+Stack:	

@@ -1,0 +1,7 @@
+debut:
+	irmovl fin,%ebx
+	jreg %ebx
+	irmovl 1, %eax
+	
+fin:	halt
+	.long 10

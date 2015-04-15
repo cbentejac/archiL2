@@ -1,0 +1,46 @@
+	irmovl Stack, %esp	# initialisation de la pile
+
+main:
+	irmovl 1, %eax		# on compte faire g(1)
+	pushl %eax		# envoi sur la pile
+	call g			# appel de g
+	iaddl 8, %esp		# decalage de deux cases dans esp
+	rmmovl %eax, res	# copie du resultat en memoire (dans res)
+	halt			# arret du programme
+	
+	
+
+sub:
+	pushl %ebp		# debut cadre de pile (sauvegarde d'ebp)
+	rrmovl %esp, %ebp	# copie de la pile dans ebp
+	mrmovl 8(%ebp), %eax	# recuperation adresse du 2eme element (i) d'ebp
+	mrmovl 12(%ebp), %ecx	# recuperation adresse du 3eme element (j) d'ebp
+	subl %ecx, %eax		# soustraction (i-j)
+	rrmovl %ebp, %esp	# fin cadre de pile (on met ebp dans esp)
+	popl %ebp		# restauration d'ebp
+	ret			# arret de fonction
+
+g:
+	pushl %ebp		# sauvegarde d'ebp
+	rrmovl %esp, %ebp	# copie de la pile dans ebp
+	irmovl 2, %eax		# deuxieme parametre du premier calcul 
+	pushl %eax		# envoi sur la pile
+	mrmovl 8(%ebp), %eax	# premier parametre du premier calcul (i)
+	pushl %eax		# envoi sur la pile
+	call sub		# appel de fonction, calcul de sub(i,2)
+	iaddl 8, %esp		# decalage de deux cases dans esp
+	rrmovl %eax, %ebx	# copie du resultat dans ebx pour plus tard
+	irmovl 1, %eax		# deuxieme parametre du deuxieme calcul
+	pushl %eax		# envoi sur la pile
+	mrmovl 8(%ebp), %eax	# premier parametre du deuxieme calcul (i)
+	pushl %eax		# envoi sur la pile
+	call sub		# appel de fonction, calcul de sub(i,1)
+	iaddl 8, %esp		# on avance de deux cases dans esp
+	addl %ebx, %eax		# on additionne les deux calculs precedents
+	rrmovl %ebp, %esp	# fin cadre de pile (on met ebp dans esp)
+	popl %ebp		# restauration d'ebp
+	ret			# arret de fonction
+	
+res:	
+	.pos 0x200
+Stack:	

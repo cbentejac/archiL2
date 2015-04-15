@@ -1,0 +1,27 @@
+	# u[1] = u[2] = 1
+	# u[n] = u[n-1] + u[n-2] <=> u[n+2] = u[n] + u[n+1]
+
+	irmovl 1,%eax # u
+	irmovl 1,%ebx # v
+	mrmovl n,%ecx # compteur d'itérations à effectuer
+	isubl 2,%ecx # déjà fini ?
+	jle end
+
+loop:
+	rrmovl %eax,%edx
+	addl %ebx,%edx # calculer u+v
+	rrmovl %ebx,%eax
+	rrmovl %edx,%ebx # décaler les valeurs
+	isubl 1,%ecx # décrémenter le compteur
+	jne loop
+
+end:
+	rmmovl %ebx, res
+	halt
+
+	.pos 0x100
+n:
+	.long 15
+res:
+	.long 0
+

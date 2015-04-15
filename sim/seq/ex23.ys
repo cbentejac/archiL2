@@ -1,0 +1,97 @@
+	# esp est l'offest dans le tableau u
+	# eax= # elements qui reste à traiter dans u
+	# edi est l'offest dans le tableau v
+	# ebx= # elements qui reste à traiter dans v
+	# esi est l'offset dans le tableau résultat (t)
+
+calcul_t:			# calcul de la taille du nouveau tableau
+	mrmovl n, %eax		# n = longueur du tableau u
+	mrmovl m, %ebx		# m = longueur du tableau v
+	addl %eax, %ebx		# longueur du nouveau tableau t
+	rmmovl %ebx, t(%esi)	# stockage de la longueur de t dans sa 1ere case
+	iaddl 4, %esi		# on avance d'une case dans t
+	mrmovl m, %ebx		# on reinitialise m, qui avait ete ecrase
+
+	xorl %edi, %edi
+	xorl %esp, %esp
+boucle:	# si u(esp)<v(edi), on insert depuis u	sinon on insert depuis v
+	mrmovl u(%esp), %ecx	# premiere valeur non ajoutee de u
+	mrmovl v(%edi), %edx	# premiere valeur non ajoutee de v
+	subl %edx, %ecx		# calcul pour savoir quelle valeur inserer en premier
+	jle move_u		# si u(esp)<v(edi), on insert depuis u
+
+move_v:# on insert depuis v
+	rmmovl %edx, t(%esi)	# insertion de la valeur dans t
+	iaddl 4, %esi 		# on avance d'une case dans t
+	iaddl 4, %edi		# on avance d'une case dans v
+	isubl 1, %ebx		# une valeur de moins a inserer
+	je fin_v		# plus de valeurs dans v a inserer
+	jmp boucle
+
+move_u: # on insert depuis u
+	mrmovl u(%esp), %ecx	# on restaure la valeur ecrasee par la soustraction
+	rmmovl %ecx, t(%esi)	# insertion de la valeur dans t
+	iaddl 4, %esi		# on avance d'une case dans t
+	iaddl 4, %esp		# on avance d'une case dans u
+	isubl 1, %eax		# une valeur de moins a inserer
+	je fin_u		# plus de valeurs dans u a inserer
+	jmp boucle
+
+
+	# On cree les cas d'arret selon la forme suivante :
+	# Si n/m arrive a 0, alors on lance une boucle qui ne vise que v/u
+	# On ajoute la valeur restante, puis on verifie si le compteur atteint 0 avec cet ajout
+	# Si oui, on arrete le programme
+	# Sinon, on relance la boucle exclusive v/u
+fin_u:
+	rmmovl %edx, t(%esi)
+	isubl 1, %ebx
+	je fin
+	iaddl 4, %esi
+	iaddl 4, %edi
+	jmp fin_u
+	
+fin_v:
+	rmmovl %ecx, t(%esi)
+	isubl 1, %eax
+	je fin
+	iaddl 4, %esi
+	iaddl 4, %esp
+	jmp fin_v
+
+fin:
+	
+	halt
+	
+	
+	.align 4
+
+	.pos 0x100
+n:
+	.long 10
+u:
+	.long 1
+	.long 1
+	.long 2
+	.long 3
+	.long 5
+	.long 8
+	.long 13
+	.long 21
+	.long 34
+	.long 60
+
+	.pos 0x180
+m:
+	.long 7
+v:
+	.long 1
+	.long 2
+	.long 4
+	.long 8
+	.long 16
+	.long 32
+	.long 64
+	
+	.pos 0x200
+t:	
