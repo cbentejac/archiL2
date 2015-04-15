@@ -79,14 +79,14 @@ intsig valM	'valm'			# Value read from memory
 
 # Does fetched instruction require a regid byte?
 bool need_regids =
-	icode in { RRMOVL, OPL, PUSHL, POPL, IRMOVL, RMMOVL, MRMOVL, JREG, JMEM };
+	icode in { RRMOVL, OPL, PUSHL, POPL, RMMOVL, MRMOVL, JREG, JMEM };
 
 # Does fetched instruction require a constant word?
 bool need_valC =
-	icode in { IRMOVL, RMMOVL, MRMOVL, JXX, CALL, OPL, JMEM };
+	icode in { RRMOVL, RMMOVL, MRMOVL, JXX, CALL, OPL, JMEM };
 
 bool instr_valid = icode in 
-	{ NOP, HALT, RRMOVL, IRMOVL, RMMOVL, MRMOVL,
+	{ NOP, HALT, RRMOVL, RMMOVL, MRMOVL,
 	       OPL, JXX, CALL, RET, PUSHL, POPL, JREG, JMEM, LEAVE };
 
 ################ Decode Stage    ###################################
@@ -109,7 +109,7 @@ int srcB = [
 
 ## What register should be used as the E destination?
 int dstE = [
-	icode in { RRMOVL, IRMOVL, OPL } : rB;
+	icode in { RRMOVL, OPL } : rB;
 	icode in { PUSHL, POPL, CALL, RET, LEAVE } : RESP;
 	1 : RNONE;  # Don't need register
 ];
@@ -127,8 +127,9 @@ int dstM = [
 int aluA = [
 	icode == OPL && rA == RNONE: valC;
 	icode == OPL : valA;
+	icode == RRMOVL && rA == RNONE: valC;
 	icode in { RRMOVL } : valA;
-	icode in { IRMOVL, RMMOVL, MRMOVL, JMEM } : valC;
+	icode in { RMMOVL, MRMOVL, JMEM } : valC;
 	icode in { CALL, PUSHL } : -4;
 	icode in { RET, POPL, LEAVE } : 4;
 	# Other instructions don't need ALU
@@ -137,7 +138,7 @@ int aluA = [
 ## Select input B to ALU
 int aluB = [
 	icode in { RMMOVL, MRMOVL, OPL, CALL, PUSHL, RET, POPL, JMEM, LEAVE } : valB;
-	icode in { RRMOVL, IRMOVL } : 0;
+	icode in { RRMOVL } : 0;
 	# Other instructions don't need ALU
 ];
 
