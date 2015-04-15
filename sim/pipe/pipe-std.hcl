@@ -149,7 +149,7 @@ int new_F_predPC = [
 
 ## What register should be used as the A source?
 int new_E_srcA = [
-	D_icode in { RRMOVL, RMMOVL, OPL, PUSHL, JREG } : D_rA;
+	D_icode in { RMMOVL, OPL, PUSHL, JREG } : D_rA;
 	D_icode in { POPL, RET } : RESP;
 	D_icode in { LEAVE } : REBP;
 	1 : RNONE; # Don't need register
@@ -165,7 +165,7 @@ int new_E_srcB = [
 
 ## What register should be used as the E destination?
 int new_E_dstE = [
-	D_icode in { RRMOVL, IRMOVL, OPL } : D_rB;
+	D_icode in { RRMOVL, OPL } : D_rB;
 	D_icode in { PUSHL, POPL, CALL, RET, LEAVE } : RESP;
 	1 : DNONE;  # Don't need register DNONE, not RNONE
 ];
@@ -204,8 +204,9 @@ int new_E_valB = [
 	int aluA = [
 	E_icode == OPL && E_srcA == RNONE : E_valC;
 	E_icode == OPL : E_valA;
+	E_icode == RRMOVL && E_srcA == RNONE : E_valC;
 	E_icode in { RRMOVL } : E_valA;
-	E_icode in { IRMOVL, RMMOVL, MRMOVL, JMEM } : E_valC;
+	E_icode in { RMMOVL, MRMOVL, JMEM } : E_valC;
 	E_icode in { CALL, PUSHL } : -4;
 	E_icode in { RET, POPL, LEAVE } : 4;
 	# Other instructions don't need ALU
@@ -215,7 +216,7 @@ int new_E_valB = [
 int aluB = [
 	E_icode in { RMMOVL, MRMOVL, OPL, CALL, 
 		      PUSHL, RET, POPL, JMEM, LEAVE } : E_valB;
-	E_icode in { RRMOVL, IRMOVL } : 0;
+	E_icode in { RRMOVL } : 0;
 	# Other instructions don't need ALU
 ];
 
