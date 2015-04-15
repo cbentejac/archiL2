@@ -46,6 +46,10 @@ char op_name(alu_t op);
 /* Different Jump conditions */
 typedef enum { J_YES, J_LE, J_L, J_E, J_NE, J_GE, J_G } jump_t;
 
+/* Push/Call et Pop/Ret */
+typedef enum { J_PUSH, J_CALL } push_t;
+typedef enum { J_POP, J_RET } pop_t;
+
 /* Pack itype and function into single byte */
 #define HPACK(hi,lo) ((((hi)&0xF)<<4)|((lo)&0xF))
 
