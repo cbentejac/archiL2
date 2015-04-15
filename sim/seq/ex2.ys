@@ -1,6 +1,6 @@
 	# u[1] = u[2] = 1
 	# u[n] = u[n-1] + u[n-2] <=> u[n+2] = u[n] + u[n+1]
-
+main:
 	irmovl 1,%eax # u
 	irmovl 1,%ebx # v
 	mrmovl n,%ecx # compteur d'itérations à effectuer
