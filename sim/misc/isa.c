@@ -709,30 +709,32 @@ exc_t step_state(state_ptr s, FILE *error_file)
 	set_reg_val(s->r, lo1, val);
 	s->pc = ftpc;
 	break;
-    /* case I_IRMOVL: */
-    /* 	if (!ok1) { */
-    /* 	    if (error_file) */
-    /* 		fprintf(error_file, */
-    /* 			"PC = 0x%x, Invalid instruction address\n", s->pc); */
-    /* 	    return EXC_ADDR; */
-    /* 	} */
-    /* 	if (!okc) { */
-    /* 	    if (error_file) */
-    /* 		fprintf(error_file, */
-    /* 			"PC = 0x%x, Invalid instruction address", */
-    /* 			s->pc); */
-    /* 	    return EXC_INSTR; */
-    /* 	} */
-    /* 	if (lo1 >= 8) { */
-    /* 	    if (error_file) */
-    /* 		fprintf(error_file, */
-    /* 			"PC = 0x%x, Invalid register ID 0x%.1x\n", */
-    /* 			s->pc, lo1); */
-    /* 	    return EXC_INSTR; */
-    /* 	} */
-    /* 	set_reg_val(s->r, lo1, cval); */
-    /* 	s->pc = ftpc; */
-    /* 	break; */
+	#if 0
+    case I_IRMOVL:
+    	if (!ok1) {
+    	    if (error_file)
+    		fprintf(error_file,
+    			"PC = 0x%x, Invalid instruction address\n", s->pc);
+    	    return EXC_ADDR;
+    	}
+    	if (!okc) {
+    	    if (error_file)
+    		fprintf(error_file,
+    			"PC = 0x%x, Invalid instruction address",
+    			s->pc);
+    	    return EXC_INSTR;
+    	}
+    	if (lo1 >= 8) {
+    	    if (error_file)
+    		fprintf(error_file,
+    			"PC = 0x%x, Invalid register ID 0x%.1x\n",
+    			s->pc, lo1);
+    	    return EXC_INSTR;
+    	}
+    	set_reg_val(s->r, lo1, cval);
+    	s->pc = ftpc;
+    	break;
+	#endif
     case I_RMMOVL:
 	if (!ok1) {
 	    if (error_file)
@@ -824,42 +826,46 @@ exc_t step_state(state_ptr s, FILE *error_file)
 	else
 	    s->pc = ftpc;
 	break;
+	#if 0
     case I_CALL:
-	if (!ok1) {
-	    if (error_file)
-		fprintf(error_file,
-			"PC = 0x%x, Invalid instruction address\n", s->pc);
-	    return EXC_ADDR;
-	}
-	if (!okc) {
-	    if (error_file)
-		fprintf(error_file,
-			"PC = 0x%x, Invalid instruction address\n", s->pc);
-	    return EXC_ADDR;
-	}
-	val = get_reg_val(s->r, REG_ESP) - 4;
-	set_reg_val(s->r, REG_ESP, val);
-	if (!set_word_val(s->m, val, ftpc)) {
-	    if (error_file)
-		fprintf(error_file,
-			"PC = 0x%x, Invalid stack address 0x%x\n", s->pc, val);
-	    return EXC_ADDR;
-	}
-	s->pc = cval;
-	break;
+    	if (!ok1) {
+    	    if (error_file)
+    		fprintf(error_file,
+    			"PC = 0x%x, Invalid instruction address\n", s->pc);
+    	    return EXC_ADDR;
+    	}
+    	if (!okc) {
+    	    if (error_file)
+    		fprintf(error_file,
+    			"PC = 0x%x, Invalid instruction address\n", s->pc);
+    	    return EXC_ADDR;
+    	}
+    	val = get_reg_val(s->r, REG_ESP) - 4;
+    	set_reg_val(s->r, REG_ESP, val);
+    	if (!set_word_val(s->m, val, ftpc)) {
+    	    if (error_file)
+    		fprintf(error_file,
+    			"PC = 0x%x, Invalid stack address 0x%x\n", s->pc, val);
+    	    return EXC_ADDR;
+    	}
+    	s->pc = cval;
+    	break;
+	#endif
+	#if 0
     case I_RET:
-	/* Return Instruction.  Pop address from stack */
-	dval = get_reg_val(s->r, REG_ESP);
-	if (!get_word_val(s->m, dval, &val)) {
-	    if (error_file)
-		fprintf(error_file,
-			"PC = 0x%x, Invalid stack address 0x%x\n",
-			s->pc, dval);
-	    return EXC_ADDR;
-	}
-	set_reg_val(s->r, REG_ESP, dval + 4);
-	s->pc = val;
-	break;
+    	/* Return Instruction.  Pop address from stack */
+    	dval = get_reg_val(s->r, REG_ESP);
+    	if (!get_word_val(s->m, dval, &val)) {
+    	    if (error_file)
+    		fprintf(error_file,
+    			"PC = 0x%x, Invalid stack address 0x%x\n",
+    			s->pc, dval);
+    	    return EXC_ADDR;
+    	}
+    	set_reg_val(s->r, REG_ESP, dval + 4);
+    	s->pc = val;
+    	break;
+	#endif
     case I_PUSHL:
 	if (!ok1) {
 	    if (error_file)
@@ -922,7 +928,8 @@ exc_t step_state(state_ptr s, FILE *error_file)
 	set_reg_val(s->r, REG_EBP, val);
 	s->pc = ftpc;
 	break;
-	/*case I_ALUI:
+	#if 0
+	case I_ALUI:
 	if (!ok1) {
 	    if (error_file)
 		fprintf(error_file,
@@ -948,7 +955,8 @@ exc_t step_state(state_ptr s, FILE *error_file)
 	set_reg_val(s->r, lo1, val);
 	s->cc = compute_cc(A_ADD, cval, argB);
 	s->pc = ftpc;
-	break;*/
+	break;
+	#endif
     default:
 	if (error_file)
 	    fprintf(error_file,

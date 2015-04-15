@@ -25,11 +25,13 @@ typedef enum { R_ARG, M_ARG, I_ARG, NO_ARG } arg_t;
  * mais il faut alors recompiler tous les fichiers yo
  */
 typedef enum { I_NOP, I_HALT, I_RRMOVL, I_FREE2, I_RMMOVL, I_MRMOVL,
-	       I_ALU, I_JXX, I_CALL, I_RET, I_PUSHL, I_POPL,
+	       I_ALU, I_JXX, I_FREE3, I_FREE4, I_PUSHL, I_POPL,
 	       I_FREE1, I_LEAVE, I_JREG, I_JMEM, I_POP2 } itype_t;
 
 #define I_ALUI I_ALU
 #define I_IRMOVL I_RRMOVL
+#define I_CALL I_PUSHL
+#define I_RET I_POPL
 
 /* pour compatibilité */
 #define I_IADDL I_ALUI
