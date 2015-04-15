@@ -2,3 +2,4 @@
 	irmovl 2, %ebx
 	addl %eax, %ebx
 	iaddl 2, %ebx
+	halt
