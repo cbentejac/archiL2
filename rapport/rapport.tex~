@@ -1,0 +1,43 @@
+\documentclass[12pt]{article}
+
+% Chargement des packages nécessaires
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[francais]{babel}
+\usepackage{graphicx}
+
+
+% Définition de la page de garde avec titre, auteurs, date
+
+\title{Architecture des Ordinateurs : Rapport de Projet}
+
+\author{Candice Bentéjac et Paul Beziau\\
+  Licence 2 d'Informatique\\ 
+  Architecture des Ordinateurs}
+
+\date{\today}
+
+% Début du document
+\begin{document}
+
+% Chargement page de garde
+\begin{figure}
+  \includegraphics{logo_ub.png}
+  \end{figure}
+\maketitle
+
+% Permet de sauter 5 lignes
+\vspace{5\baselineskip}
+% Résumé du rapport
+\abstract{Ce rapport tient lieu de compte-rendu du binôme composé de Paul Beziau et Candice Bentéjac (groupe IN400A2) dans le cadre du projet d'architecture des ordinateurs (UE Architecture des Ordinateurs).}
+
+% Nouvelle page
+\newpage
+
+% Chargement table des matières
+\tableofcontents
+\newpage
+
+\section*{Introduction}
+
+\section*{Conclusion}
