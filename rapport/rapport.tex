@@ -29,7 +29,7 @@
 % Permet de sauter 5 lignes
 \vspace{5\baselineskip}
 % Résumé du rapport
-\abstract{Ce rapport tient lieu de compte-rendu du binôme composé de Paul Beziau et Candice Bentéjac (groupe IN400A2) dans le cadre du projet d'architecture des ordinateurs (UE Architecture des Ordinateurs).}
+e \abstract{Ce rapport tient lieu de compte-rendu du binôme composé de Paul Beziau et Candice Bentéjac (groupe IN400A2) dans le cadre du projet d'architecture des ordinateurs (UE Architecture des Ordinateurs).}
 
 % Nouvelle page
 \newpage
@@ -39,6 +39,29 @@
 \newpage
 
 \section*{Introduction}
+\paragraph{}Dans le cadre de l'Unité d'Enseignement ``Architecture des Ordinateurs'' (INF 155), il nous a été demandé de réaliser un projet consistant à modifier les fichiers sources des simulateurs d'architecture Y86, et ce tant sur la version {\itshape séquentielle} que sur la version {\itshape pipelinée}. Ce projet était constitué de trois parties, présentées sous forme d'exercices.
+
+\paragraph{}Le premier exercice consistait à libérer des emplacements parmi les {\itshape opcodes} Y86. Il nous fallait donc factoriser des instructions peu ou prou semblables afin de pouvoir les utiliser avec un seul {\itshape opcode} plutôt que plusieurs.
+
+\paragraph{}Le deuxième exercice avait pour but de nous faire modifier l'architecture afin que cette dernière soit capable de supporter des instructions s'exécutant sur plusieurs cycles, c'est-à-dire des instructions qui sont équivalentes à des enchaînements de plusieurs instructions.
+
+A titre d'exemple, on peut parler de l'instruction X86 \verb+enter+ (décrite dans le projet) qui est équivalente à \verb+push %ebp+ suivi de \verb+rrmovl %esp,%ebp+.
+
+\paragraph{}Enfin, le troisième exercice nous demandait d'ajouter plusieurs instructions à l'architecture, et notamment l'instruction \verb+enter+.
+
+\paragraph{}Ce rapport est le compte-rendu du travail sur le projet que notre binôme, constitué de Paul Beziau et de Candice Bentéjac, a effectué.
+
+
+
+\section{Exercice 1}
+
+
+
+\section{Exercice 2}
+
+
+
+\section{Exercice 3}
 
 \section*{Conclusion}
 
