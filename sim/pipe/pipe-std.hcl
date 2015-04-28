@@ -38,6 +38,15 @@ intsig JMEM	'I_JMEM'
 intsig JREG	'I_JREG'
 intsig LEAVE	'I_LEAVE'
 
+
+#ifun des instructions PUSHL/CALL/POPL/RET (composée de PUSH_ et des deux premières lettres de l'instruction originelle)
+intsig PUSH_PU 'J_PUSH'
+intsig PUSH_PO 'J_POP'
+intsig PUSH_CA 'J_CALL'
+intsig PUSH_RE 'J_RET'
+	
+	
+
 ##### Symbolic representation of Y86 Registers referenced explicitly #####
 intsig RESP     'REG_ESP'    	# Stack Pointer
 intsig REBP     'REG_EBP'    	# Frame Pointer
@@ -65,6 +74,8 @@ intsig D_icode 'if_id_curr->icode'	# Instruction code
 intsig D_rA 'if_id_curr->ra'	# rA field from instruction
 intsig D_rB 'if_id_curr->rb'	# rB field from instruction
 intsig D_valP 'if_id_curr->valp'	# Incremented PC
+
+intsig D_ifun 'if_id_curr->ifun' # Instruction fonction
 
 ##### Intermediate Values in Decode Stage  #########################
 
@@ -107,6 +118,8 @@ intsig W_valE  'mem_wb_curr->vale'      # ALU E value
 intsig W_dstM 'mem_wb_curr->destm'	# Destination M register ID
 intsig W_valM  'mem_wb_curr->valm'	# Memory M value
 
+intsig W_ifun 'mem_wb_curr->ifun' # Instruction fonction
+
 ####################################################################
 #    Control Signal Definitions.                                   #
 ####################################################################
@@ -118,7 +131,7 @@ int f_pc = [
 	# Mispredicted branch.  Fetch at incremented PC
 	M_icode == JXX && !M_Bch : M_valA;
 	# Completion of RET instruction.
-	W_icode == RET : W_valM;
+	W_icode == PUSHL && W_ifun == PUSH_RE : W_valM;
 	E_icode == JREG && !M_Bch : E_valA;
 	W_icode == JMEM :  W_valM;
 	# Default: Use predicted value of PC
@@ -127,19 +140,20 @@ int f_pc = [
 
 # Does fetched instruction require a regid byte?
 bool need_regids =
-	f_icode in { RRMOVL, OPL, PUSHL, POPL, IRMOVL, RMMOVL, MRMOVL, JREG, JMEM };
+	f_icode in { RRMOVL, OPL, PUSHL, IRMOVL, RMMOVL, MRMOVL, JREG, JMEM };
 
 # Does fetched instruction require a constant word?
 bool need_valC =
-	f_icode in { IRMOVL, RMMOVL, MRMOVL, JXX, CALL, OPL, JMEM };
+	f_icode in { IRMOVL, RMMOVL, MRMOVL, JXX, PUSHL, OPL, JMEM };
 
 bool instr_valid = f_icode in 
 	{ NOP, HALT, RRMOVL, IRMOVL, RMMOVL, MRMOVL,
-	       OPL, JXX, CALL, RET, PUSHL, POPL, JREG, JMEM, LEAVE };
+	       OPL, JXX, PUSHL, JREG, JMEM, LEAVE };
 
 # Predict next value of PC
 int new_F_predPC = [
-	f_icode in { JXX, CALL } : f_valC;
+    f_icode == PUSHL && f_ifun == PUSH_CA : f_valC;
+	f_icode == JXX : f_valC;
 	1 : f_valP;
 ];
 
@@ -149,8 +163,8 @@ int new_F_predPC = [
 
 ## What register should be used as the A source?
 int new_E_srcA = [
+    D_icode == PUSHL && D_ifun in { PUSH_PO, PUSH_RE } : RESP;
 	D_icode in { RMMOVL, OPL, PUSHL, JREG } : D_rA;
-	D_icode in { POPL, RET } : RESP;
 	D_icode in { LEAVE } : REBP;
 	1 : RNONE; # Don't need register
 ];
@@ -158,7 +172,7 @@ int new_E_srcA = [
 ## What register should be used as the B source?
 int new_E_srcB = [
 	D_icode in { OPL, RMMOVL, MRMOVL, JMEM } : D_rB;
-	D_icode in { PUSHL, POPL, CALL, RET } : RESP;
+	D_icode == PUSHL : RESP;
 	D_icode in { LEAVE } : REBP;
 	1 : RNONE;  # Don't need register
 ];
@@ -166,13 +180,14 @@ int new_E_srcB = [
 ## What register should be used as the E destination?
 int new_E_dstE = [
 	D_icode in { RRMOVL, OPL } : D_rB;
-	D_icode in { PUSHL, POPL, CALL, RET, LEAVE } : RESP;
+	D_icode in { PUSHL, LEAVE } : RESP;
 	1 : DNONE;  # Don't need register DNONE, not RNONE
 ];
 
 ## What register should be used as the M destination?
 int new_E_dstM = [
-	D_icode in { MRMOVL, POPL } : D_rA;
+    D_icode == PUSHL && D_ifun in { PUSH_PO, PUSH_RE} : D_rA; 
+	D_icode == MRMOVL : D_rA;
 	D_icode in { LEAVE } : REBP;
 	1 : DNONE;  # Don't need register DNONE, not RNONE
 ];
@@ -180,7 +195,8 @@ int new_E_dstM = [
 ## What should be the A value?
 ## Forward into decode stage for valA
 int new_E_valA = [
-	D_icode in { CALL, JXX } : D_valP; # Use incremented PC
+    D_icode == PUSHL && D_ifun == PUSH_CA : D_valP;
+	D_icode == JXX : D_valP; # Use incremented PC
 	d_srcA == E_dstE : e_valE;    # Forward valE from execute
 	d_srcA == M_dstM : m_valM;    # Forward valM from memory
 	d_srcA == M_dstE : M_valE;    # Forward valE from memory
@@ -207,15 +223,14 @@ int new_E_valB = [
 	E_icode == RRMOVL && E_srcA == RNONE : E_valC;
 	E_icode in { RRMOVL } : E_valA;
 	E_icode in { RMMOVL, MRMOVL, JMEM } : E_valC;
-	E_icode in { CALL, PUSHL } : -4;
-	E_icode in { RET, POPL, LEAVE } : 4;
+    E_icode == PUSHL && E_ifun in { PUSH_PU, PUSH_CA } : -4;
+	E_icode in { PUSHL, LEAVE } : 4;
 	# Other instructions don't need ALU
 ];
 
 ## Select input B to ALU
 int aluB = [
-	E_icode in { RMMOVL, MRMOVL, OPL, CALL, 
-		      PUSHL, RET, POPL, JMEM, LEAVE } : E_valB;
+	E_icode in { RMMOVL, MRMOVL, OPL, PUSHL, JMEM, LEAVE } : E_valB;
 	E_icode in { RRMOVL } : 0;
 	# Other instructions don't need ALU
 ];
@@ -234,16 +249,19 @@ bool set_cc = E_icode in { OPL };
 
 ## Select memory address
 int mem_addr = [
-M_icode in { RMMOVL, PUSHL, CALL, MRMOVL, JMEM } : M_valE;
-	M_icode in { POPL, RET, LEAVE } : M_valA;
+    M_icode == PUSHL && M_ifun in { PUSH_PU, PUSH_CA } : M_valE;
+    M_icode in { RMMOVL, MRMOVL, JMEM } : M_valE;
+	M_icode in { PUSHL, LEAVE } : M_valA;
 	# Other instructions don't need address
 ];
 
 ## Set read control signal
-bool mem_read = M_icode in { MRMOVL, POPL, RET, JMEM, LEAVE };
+bool mem_read = (M_icode == PUSHL && M_ifun in { PUSH_PO, PUSH_RE }) ||
+                (M_icode in { MRMOVL, JMEM, LEAVE });
 
 ## Set write control signal
-bool mem_write = M_icode in { RMMOVL, PUSHL, CALL };
+bool mem_write = (M_icode == PUSHL && M_ifun in { PUSH_PU, PUSH_CA }) ||
+                 (M_icode == RMMOVL);
 
 
 ################ Pipeline Register Control #########################
@@ -252,7 +270,9 @@ bool mem_write = M_icode in { RMMOVL, PUSHL, CALL };
 # At most one of these can be true.
 bool F_bubble =
 	# Inject bubbles instead of fetching while ret passes through pipeline
-	RET in { D_icode, E_icode, M_icode } ||
+    (D_icode == PUSHL && D_ifun == PUSH_RE) ||
+      (E_icode == PUSHL && E_ifun == PUSH_RE) ||
+      (M_icode == PUSHL && M_ifun == PUSH_RE) ||
 	# Maching is halting, stop fetching
 	HALT in { f_icode, D_icode, E_icode, M_icode, W_icode } ||
 	JMEM in { D_icode, E_icode, M_icode };

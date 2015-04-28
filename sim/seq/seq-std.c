@@ -38,7 +38,7 @@ int gen_dstE()
 
 int gen_dstM()
 {
-    return (((icode) == (I_MRMOVL)||(icode) == (I_PUSHL)) ? (ra) : ((icode) == (I_LEAVE)) ? (REG_EBP) : 1 ? (REG_NONE) : 0);
+    return ((((icode) == (I_PUSHL)) & ((ifun) == (J_POP)||(ifun) == (J_RET))) ? (ra) : ((icode) == (I_MRMOVL)) ? (ra) : ((icode) == (I_LEAVE)) ? (REG_EBP) : 1 ? (REG_NONE) : 0);
 }
 
 int gen_aluA()

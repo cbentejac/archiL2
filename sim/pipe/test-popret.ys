@@ -1,0 +1,17 @@
+main:
+	irmovl Stack, %esp
+	irmovl main, %eax
+	pushl %eax
+	irmovl f, %eax
+	call f
+	irmovl 1, %ebx
+	popl %ebx
+	halt
+
+f:
+	ret
+
+
+	
+	.pos 0x200
+Stack:	

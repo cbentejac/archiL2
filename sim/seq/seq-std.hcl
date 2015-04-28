@@ -123,7 +123,8 @@ int dstE = [
 
 ## What register should be used as the M destination?
 int dstM = [
-	icode in { MRMOVL, PUSHL } : rA;
+    icode == PUSHL && ifun in { PUSH_PO, PUSH_RE } : rA;
+	icode == MRMOVL : rA;
 	icode in { LEAVE } : REBP;
 	1 : RNONE;  # Don't need register
 ];
