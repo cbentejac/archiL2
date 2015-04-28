@@ -69,9 +69,9 @@ instr_t instruction_set[] =
     {"jne",    HPACK(I_JXX, J_NE), 5, I_ARG, 1, 4, NO_ARG, 0, 0 },
     {"jge",    HPACK(I_JXX, J_GE), 5, I_ARG, 1, 4, NO_ARG, 0, 0 },
     {"jg",     HPACK(I_JXX, J_G), 5, I_ARG, 1, 4, NO_ARG, 0, 0 },
-    {"call",   HPACK(I_CALL, J_CALL),    5, I_ARG, 1, 4, NO_ARG, 0, 0 },
+    {"call",   HPACK(I_CALL, J_CALL), 6, I_ARG, 2, 4, NO_ARG, 1, 1 },
     {"ret",    HPACK(I_RET, J_RET), 2, NO_ARG, 0, 0, NO_ARG, 0, 0 },
-    {"pushl",  HPACK(I_PUSHL, J_PUSH) , 5, R_ARG, 1, 1, NO_ARG, 0, 0 },
+    {"pushl",  HPACK(I_PUSHL, J_PUSH) , 6, R_ARG, 1, 1, NO_ARG, 0, 0 },
     {"popl",   HPACK(I_POPL, J_POP) ,  2, R_ARG, 1, 1, NO_ARG, 0, 0 },
     /* JB versions immédiates de toutes les opérations */
     {"iaddl",  HPACK(I_ALUI, A_ADD),  6, I_ARG, 2, 4, R_ARG, 1, 0 },
