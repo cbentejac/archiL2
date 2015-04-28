@@ -39,11 +39,12 @@ intsig JMEM	'I_JMEM'
 intsig JREG	'I_JREG'
 intsig LEAVE	'I_LEAVE'
 
-
-intsig PUSH_S 	'J_PUSH'
-intsig PUSH_F 	'J_CALL'
-intsig POP_S    'J_POP'
-intsig POP_F    'J_RET'
+#I_fun pour la factorisation push/call/pop/ret : composés de PUSH et des deux premières
+#lettres de l'instruction originelle.	
+intsig PUSH_PU 	'J_PUSH'
+intsig PUSH_CA 	'J_CALL'
+intsig PUSH_PO   'J_POP'
+intsig PUSH_RE    'J_RET'
 	
 
 ##### Symbolic representation of Y86 Registers referenced explicitly #####
@@ -86,7 +87,7 @@ intsig valM	'valm'			# Value read from memory
 
 # Does fetched instruction require a regid byte?
 bool need_regids =
-	icode in { RRMOVL, OPL, PUSHL, POPL, RMMOVL, MRMOVL, JREG, JMEM };
+	icode in { RRMOVL, OPL, PUSHL, RMMOVL, MRMOVL, JREG, JMEM };
 
 # Does fetched instruction require a constant word?
 bool need_valC =
@@ -94,14 +95,13 @@ bool need_valC =
 
 bool instr_valid = icode in 
 	{ NOP, HALT, RRMOVL, RMMOVL, MRMOVL,
-	       OPL, JXX, PUSHL, POPL, JREG, JMEM, LEAVE };
+	       OPL, JXX, PUSHL, JREG, JMEM, LEAVE };
 
 ################ Decode Stage    ###################################
 
 ## What register should be used as the A source?
 int srcA = [
 	icode in { RRMOVL, RMMOVL, OPL, PUSHL, JREG } : rA;
-	icode in { POPL } : RESP;
 	icode in { LEAVE } : REBP;
 	1 : RNONE; # Don't need register
 ];
@@ -109,7 +109,7 @@ int srcA = [
 ## What register should be used as the B source?
 int srcB = [
 	icode in { OPL, RMMOVL, MRMOVL, JMEM } : rB;
-	icode in { PUSHL, POPL } : RESP;
+	icode in { PUSHL } : RESP;
 	icode in { LEAVE } : REBP;
 	1 : RNONE;  # Don't need register
 ];
@@ -117,13 +117,13 @@ int srcB = [
 ## What register should be used as the E destination?
 int dstE = [
 	icode in { RRMOVL, OPL } : rB;
-	icode in { PUSHL, POPL, LEAVE } : RESP;
+	icode in { PUSHL, LEAVE } : RESP;
 	1 : RNONE;  # Don't need register
 ];
 
 ## What register should be used as the M destination?
 int dstM = [
-	icode in { MRMOVL, POPL } : rA;
+	icode in { MRMOVL, PUSHL } : rA;
 	icode in { LEAVE } : REBP;
 	1 : RNONE;  # Don't need register
 ];
@@ -137,14 +137,14 @@ int aluA = [
 	icode == RRMOVL && rA == RNONE: valC;
 	icode in { RRMOVL } : valA;
 	icode in { RMMOVL, MRMOVL, JMEM } : valC;
-	icode in { PUSHL } : -4;
-	icode in { POPL, LEAVE } : 4;
+	icode == PUSHL  && ifun in { PUSH_PU, PUSH_CA } : -4;
+	icode in { PUSHL, LEAVE } : 4;
 	# Other instructions don't need ALU
 ];
 
 ## Select input B to ALU
 int aluB = [
-	icode in { RMMOVL, MRMOVL, OPL, PUSHL, POPL, JMEM, LEAVE } : valB;
+	icode in { RMMOVL, MRMOVL, OPL, PUSHL, JMEM, LEAVE } : valB;
 	icode in { RRMOVL } : 0;
 	# Other instructions don't need ALU
 ];
@@ -161,24 +161,32 @@ bool set_cc = icode in { OPL };
 ################ Memory Stage    ###################################
 
 ## Set read control signal
-bool mem_read = icode in { MRMOVL, POPL, JMEM, LEAVE };
+bool mem_read =
+    (icode == PUSHL && ifun in { PUSH_PO, PUSH_RE }) ||
+    (icode in { MRMOVL, JMEM, LEAVE });
+
 
 ## Set write control signal
-bool mem_write = icode in { RMMOVL, PUSHL };
+bool mem_write =
+    (icode == PUSHL && ifun in { PUSH_PU, PUSH_CA }) ||
+    (icode == RMMOVL);
 
 ## Select memory address
 int mem_addr = [
-	icode in { RMMOVL, PUSHL, MRMOVL, JMEM } : valE;
-	icode in { POPL, LEAVE } : valA;
+    icode == PUSHL && ifun in { PUSH_PU, PUSH_CA } : valE;
+	icode in { RMMOVL, MRMOVL, JMEM } : valE;
+    icode == PUSHL : valB;
+	icode == LEAVE : valA;
 	# Other instructions don't need address
 ];
 
 ## Select memory input data
 int mem_data = [
 	# Return PC
-	icode == PUSHL && ifun == PUSH_F : valP;
+	icode == PUSHL && ifun == PUSH_CA : valP;
+	icode == PUSHL && ifun == PUSH_PU : valA;
 	# Value from register
-	icode in { RMMOVL, PUSHL } : valA;
+	icode in { RMMOVL } : valA;
 
 	
 	# Default: Don't write anything
@@ -191,11 +199,11 @@ int mem_data = [
 int new_pc = [
 	icode == JMEM : valM ;
 	# Call.  Use instruction constant
-	icode == PUSHL && ifun == PUSH_F : valC;
+	icode == PUSHL && ifun == PUSH_CA : valC;
 	# Taken branch.  Use instruction constant
 	icode == JXX && Bch : valC;
 	# Completion of RET instruction.  Use value from stack
-	icode == POPL && ifun == POP_F : valM;
+	icode == PUSHL && ifun == PUSH_RE : valM;
 
 	icode == JREG : valA;
 	# Default: Use incremented PC
