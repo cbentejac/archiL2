@@ -95,7 +95,11 @@ bool need_valC =
 
 bool instr_valid = icode in 
 	{ NOP, HALT, RRMOVL, RMMOVL, MRMOVL,
-	       OPL, JXX, PUSHL, JREG, JMEM, LEAVE };
+	OPL, JXX, PUSHL, JREG, JMEM, LEAVE };
+
+int instr_next_ifun = [
+	1 : -1;
+];
 
 ################ Decode Stage    ###################################
 

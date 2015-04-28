@@ -1323,6 +1323,7 @@ int gen_f_pc();
 int gen_need_regids();
 int gen_need_valC();
 int gen_instr_valid();
+int gen_instr_next_ifun();
 int gen_new_F_predPC();
 int gen_new_D_icode();
 
