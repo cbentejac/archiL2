@@ -662,7 +662,7 @@ static exc_t sim_step()
 	pc = gen_pc();
     }
     valp = pc;
-    if(gen_next_ifun () !=-1)
+    if(gen_instr_next_ifun () !=-1)
       ifun = gen_instr_next_ifun();
     else if (get_byte_val(mem, valp, &instr)) {
 	icode = HI4(instr);
