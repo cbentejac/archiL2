@@ -58,6 +58,10 @@ instr_t instruction_set[] =
     {"subl",   HPACK(I_ALU, A_SUB), 6, R_ARG, 1, 1, R_ARG, 1, 0 },
     {"andl",   HPACK(I_ALU, A_AND), 6, R_ARG, 1, 1, R_ARG, 1, 0 },
     {"xorl",   HPACK(I_ALU, A_XOR), 6, R_ARG, 1, 1, R_ARG, 1, 0 },
+    /* intruction mul */
+    {"mul",    HPACK(I_MUL, 0), 2, R_ARG, 1, 1, R_ARG, 1, 0 },
+    {"mul1",   HPACK(I_MUL, 1), 2, R_ARG, 1, 1, R_ARG, 1, 0 },
+    {"mul2",   HPACK(I_MUL, 2), 2, R_ARG, 1, 1, R_ARG, 1, 0 },
     /* JB ajout sall et sarl (shift arithmetic left/right) */
     {"sall",   HPACK(I_ALU, A_SAL), 6, R_ARG, 1, 1, R_ARG, 1, 0 },
     {"sarl",   HPACK(I_ALU, A_SAR), 6, R_ARG, 1, 1, R_ARG, 1, 0 },

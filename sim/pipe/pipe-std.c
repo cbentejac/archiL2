@@ -23,7 +23,7 @@ int gen_need_valC()
 
 int gen_instr_valid()
 {
-    return ((if_id_next->icode) == (I_NOP)||(if_id_next->icode) == (I_HALT)||(if_id_next->icode) == (I_RRMOVL)||(if_id_next->icode) == (I_IRMOVL)||(if_id_next->icode) == (I_RMMOVL)||(if_id_next->icode) == (I_MRMOVL)||(if_id_next->icode) == (I_ALU)||(if_id_next->icode) == (I_JXX)||(if_id_next->icode) == (I_PUSHL)||(if_id_next->icode) == (I_JREG)||(if_id_next->icode) == (I_JMEM)||(if_id_next->icode) == (I_LEAVE));
+    return ((if_id_next->icode) == (I_NOP)||(if_id_next->icode) == (I_HALT)||(if_id_next->icode) == (I_RRMOVL)||(if_id_next->icode) == (I_IRMOVL)||(if_id_next->icode) == (I_RMMOVL)||(if_id_next->icode) == (I_MRMOVL)||(if_id_next->icode) == (I_ALU)||(if_id_next->icode) == (I_JXX)||(if_id_next->icode) == (I_PUSHL)||(if_id_next->icode) == (I_JREG)||(if_id_next->icode) == (I_JMEM)||(if_id_next->icode) == (I_LEAVE)||(if_id_next->icode) == (I_ENTER));
 }
 
 int gen_new_F_predPC()
@@ -31,19 +31,24 @@ int gen_new_F_predPC()
     return ((((if_id_next->icode) == (I_PUSHL)) & ((if_id_next->ifun) == (J_CALL))) ? (if_id_next->valc) : ((if_id_next->icode) == (I_JXX)) ? (if_id_next->valc) : 1 ? (if_id_next->valp) : 0);
 }
 
+int gen_instr_next_ifun()
+{
+    return ((((if_id_next->icode) == (I_ENTER)) & ((if_id_next->ifun) == 0)) ? 1 : 1 ? -1 : 0);
+}
+
 int gen_new_E_srcA()
 {
-    return ((((if_id_curr->icode) == (I_PUSHL)) & ((if_id_curr->ifun) == (J_POP)||(if_id_curr->ifun) == (J_RET))) ? (REG_ESP) : ((if_id_curr->icode) == (I_RMMOVL)||(if_id_curr->icode) == (I_ALU)||(if_id_curr->icode) == (I_PUSHL)||(if_id_curr->icode) == (I_JREG)) ? (if_id_curr->ra) : ((if_id_curr->icode) == (I_LEAVE)) ? (REG_EBP) : 1 ? (REG_NONE) : 0);
+    return ((((if_id_curr->icode) == (I_PUSHL)) & ((if_id_curr->ifun) == (J_POP)||(if_id_curr->ifun) == (J_RET))) ? (REG_ESP) : ((if_id_curr->icode) == (I_RMMOVL)||(if_id_curr->icode) == (I_ALU)||(if_id_curr->icode) == (I_PUSHL)||(if_id_curr->icode) == (I_JREG)) ? (if_id_curr->ra) : ((if_id_curr->icode) == (I_LEAVE)||(if_id_curr->icode) == (I_ENTER)) ? (REG_EBP) : 1 ? (REG_NONE) : 0);
 }
 
 int gen_new_E_srcB()
 {
-    return (((if_id_curr->icode) == (I_ALU)||(if_id_curr->icode) == (I_RMMOVL)||(if_id_curr->icode) == (I_MRMOVL)||(if_id_curr->icode) == (I_JMEM)) ? (if_id_curr->rb) : ((if_id_curr->icode) == (I_PUSHL)) ? (REG_ESP) : ((if_id_curr->icode) == (I_LEAVE)) ? (REG_EBP) : 1 ? (REG_NONE) : 0);
+    return (((if_id_curr->icode) == (I_ALU)||(if_id_curr->icode) == (I_RMMOVL)||(if_id_curr->icode) == (I_MRMOVL)||(if_id_curr->icode) == (I_JMEM)) ? (if_id_curr->rb) : ((if_id_curr->icode) == (I_PUSHL)||(if_id_curr->icode) == (I_ENTER)) ? (REG_ESP) : ((if_id_curr->icode) == (I_LEAVE)) ? (REG_EBP) : 1 ? (REG_NONE) : 0);
 }
 
 int gen_new_E_dstE()
 {
-    return (((if_id_curr->icode) == (I_RRMOVL)||(if_id_curr->icode) == (I_ALU)) ? (if_id_curr->rb) : ((if_id_curr->icode) == (I_PUSHL)||(if_id_curr->icode) == (I_LEAVE)) ? (REG_ESP) : 1 ? (DEST_NONE) : 0);
+    return (((if_id_curr->icode) == (I_RRMOVL)||(if_id_curr->icode) == (I_ALU)) ? (if_id_curr->rb) : (((if_id_curr->icode) == (I_ENTER)) & ((if_id_curr->ifun) == 1)) ? (REG_EBP) : ((if_id_curr->icode) == (I_PUSHL)||(if_id_curr->icode) == (I_LEAVE)||(if_id_curr->icode) == (I_ENTER)) ? (REG_ESP) : 1 ? (DEST_NONE) : 0);
 }
 
 int gen_new_E_dstM()
@@ -63,12 +68,12 @@ int gen_new_E_valB()
 
 int gen_aluA()
 {
-    return ((((id_ex_curr->icode) == (I_ALU)) & ((id_ex_curr->srca) == (REG_NONE))) ? (id_ex_curr->valc) : ((id_ex_curr->icode) == (I_ALU)) ? (id_ex_curr->vala) : (((id_ex_curr->icode) == (I_RRMOVL)) & ((id_ex_curr->srca) == (REG_NONE))) ? (id_ex_curr->valc) : ((id_ex_curr->icode) == (I_RRMOVL)) ? (id_ex_curr->vala) : ((id_ex_curr->icode) == (I_RMMOVL)||(id_ex_curr->icode) == (I_MRMOVL)||(id_ex_curr->icode) == (I_JMEM)) ? (id_ex_curr->valc) : (((id_ex_curr->icode) == (I_PUSHL)) & ((id_ex_curr->ifun) == (J_PUSH)||(id_ex_curr->ifun) == (J_CALL))) ? -4 : ((id_ex_curr->icode) == (I_PUSHL)||(id_ex_curr->icode) == (I_LEAVE)) ? 4 : 0);
+    return ((((id_ex_curr->icode) == (I_ALU)) & ((id_ex_curr->srca) == (REG_NONE))) ? (id_ex_curr->valc) : ((id_ex_curr->icode) == (I_ALU)) ? (id_ex_curr->vala) : (((id_ex_curr->icode) == (I_RRMOVL)) & ((id_ex_curr->srca) == (REG_NONE))) ? (id_ex_curr->valc) : ((id_ex_curr->icode) == (I_RRMOVL)) ? (id_ex_curr->vala) : ((id_ex_curr->icode) == (I_RMMOVL)||(id_ex_curr->icode) == (I_MRMOVL)||(id_ex_curr->icode) == (I_JMEM)) ? (id_ex_curr->valc) : (((id_ex_curr->icode) == (I_PUSHL)) & ((id_ex_curr->ifun) == (J_PUSH)||(id_ex_curr->ifun) == (J_CALL))) ? -4 : (((id_ex_curr->icode) == (I_ENTER)) & ((id_ex_curr->ifun) == 1)) ? 0 : ((id_ex_curr->icode) == (I_ENTER)) ? -4 : ((id_ex_curr->icode) == (I_PUSHL)||(id_ex_curr->icode) == (I_LEAVE)) ? 4 : 0);
 }
 
 int gen_aluB()
 {
-    return (((id_ex_curr->icode) == (I_RMMOVL)||(id_ex_curr->icode) == (I_MRMOVL)||(id_ex_curr->icode) == (I_ALU)||(id_ex_curr->icode) == (I_PUSHL)||(id_ex_curr->icode) == (I_JMEM)||(id_ex_curr->icode) == (I_LEAVE)) ? (id_ex_curr->valb) : ((id_ex_curr->icode) == (I_RRMOVL)) ? 0 : 0);
+    return (((id_ex_curr->icode) == (I_RMMOVL)||(id_ex_curr->icode) == (I_MRMOVL)||(id_ex_curr->icode) == (I_ALU)||(id_ex_curr->icode) == (I_PUSHL)||(id_ex_curr->icode) == (I_JMEM)||(id_ex_curr->icode) == (I_LEAVE)||(id_ex_curr->icode) == (I_ENTER)) ? (id_ex_curr->valb) : ((id_ex_curr->icode) == (I_RRMOVL)) ? 0 : 0);
 }
 
 int gen_alufun()
@@ -83,7 +88,7 @@ int gen_set_cc()
 
 int gen_mem_addr()
 {
-    return ((((ex_mem_curr->icode) == (I_PUSHL)) & ((ex_mem_curr->ifun) == (J_PUSH)||(ex_mem_curr->ifun) == (J_CALL))) ? (ex_mem_curr->vale) : ((ex_mem_curr->icode) == (I_RMMOVL)||(ex_mem_curr->icode) == (I_MRMOVL)||(ex_mem_curr->icode) == (I_JMEM)) ? (ex_mem_curr->vale) : ((ex_mem_curr->icode) == (I_PUSHL)||(ex_mem_curr->icode) == (I_LEAVE)) ? (ex_mem_curr->vala) : 0);
+    return ((((ex_mem_curr->icode) == (I_PUSHL)) & ((ex_mem_curr->ifun) == (J_PUSH)||(ex_mem_curr->ifun) == (J_CALL))) ? (ex_mem_curr->vale) : ((ex_mem_curr->icode) == (I_RMMOVL)||(ex_mem_curr->icode) == (I_MRMOVL)||(ex_mem_curr->icode) == (I_JMEM)||(ex_mem_curr->icode) == (I_ENTER)) ? (ex_mem_curr->vale) : ((ex_mem_curr->icode) == (I_PUSHL)||(ex_mem_curr->icode) == (I_LEAVE)) ? (ex_mem_curr->vala) : 0);
 }
 
 int gen_mem_read()
@@ -93,7 +98,7 @@ int gen_mem_read()
 
 int gen_mem_write()
 {
-    return ((((ex_mem_curr->icode) == (I_PUSHL)) & ((ex_mem_curr->ifun) == (J_PUSH)||(ex_mem_curr->ifun) == (J_CALL))) | ((ex_mem_curr->icode) == (I_RMMOVL)));
+    return (((((ex_mem_curr->icode) == (I_PUSHL)) & ((ex_mem_curr->ifun) == (J_PUSH)||(ex_mem_curr->ifun) == (J_CALL))) | (((ex_mem_curr->icode) == (I_ENTER)) & ((ex_mem_curr->ifun) == 0))) | ((ex_mem_curr->icode) == (I_RMMOVL)));
 }
 
 int gen_F_bubble()
