@@ -37,8 +37,9 @@ intsig POPL	'I_POPL'
 intsig JMEM	'I_JMEM'
 intsig JREG	'I_JREG'
 intsig LEAVE	'I_LEAVE'
-intsig ENTER	'I_ENTER'
 
+intsig ENTER	'I_ENTER'
+intsig MUL      'I_MUL'
 #ifun des instructions PUSHL/CALL/POPL/RET (composée de PUSH_ et des deux premières lettres de l'instruction originelle)
 intsig PUSH_PU 'J_PUSH'
 intsig PUSH_PO 'J_POP'
@@ -52,6 +53,7 @@ intsig RESP     'REG_ESP'    	# Stack Pointer
 intsig REBP     'REG_EBP'    	# Frame Pointer
 intsig RNONE    'REG_NONE'   	# Special value indicating "no register"
 intsig DNONE    'DEST_NONE'     # "no destination register"
+intsig REAX     'REG_EAX' #eax register
 
 ##### ALU Functions referenced explicitly ##########################
 intsig ALUADD	'A_ADD'		# ALU should add its arguments
@@ -140,7 +142,7 @@ int f_pc = [
 
 # Does fetched instruction require a regid byte?
 bool need_regids =
-	f_icode in { RRMOVL, OPL, PUSHL, IRMOVL, RMMOVL, MRMOVL, JREG, JMEM };
+	f_icode in { RRMOVL, OPL, PUSHL, IRMOVL, RMMOVL, MRMOVL, JREG, JMEM, MUL };
 
 # Does fetched instruction require a constant word?
 bool need_valC =
@@ -148,7 +150,7 @@ bool need_valC =
 
 bool instr_valid = f_icode in 
 	{ NOP, HALT, RRMOVL, IRMOVL, RMMOVL, MRMOVL,
-	       OPL, JXX, PUSHL, JREG, JMEM, LEAVE, ENTER };
+	       OPL, JXX, PUSHL, JREG, JMEM, LEAVE, ENTER, MUL };
 
 # Predict next value of PC
 int new_F_predPC = [
@@ -158,7 +160,10 @@ int new_F_predPC = [
 ];
 
 int instr_next_ifun = [
-        f_icode == ENTER && f_ifun == 0 : 1;
+    f_icode == MUL && f_ifun == 0 : 1;
+    f_icode == MUL && f_ifun == 1 : 2;
+    f_icode == MUL && f_ifun == 2 : 1;
+    f_icode == ENTER && f_ifun == 0 : 1;
 	1 : -1;
 ];
 	
@@ -167,6 +172,7 @@ int instr_next_ifun = [
 
 ## What register should be used as the A source?
 int new_E_srcA = [
+    D_icode == MUL && D_ifun == 1 : D_rB;
     D_icode == PUSHL && D_ifun in { PUSH_PO, PUSH_RE } : RESP;
 	D_icode in { RMMOVL, OPL, PUSHL, JREG } : D_rA;
 	D_icode in { LEAVE, ENTER } : REBP;
