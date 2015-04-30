@@ -38,7 +38,7 @@ intsig POPL	'I_POPL'
 intsig JMEM	'I_JMEM'
 intsig JREG	'I_JREG'
 intsig LEAVE	'I_LEAVE'
-
+intsig ENTER	'I_ENTER'
 #I_fun pour la factorisation push/call/pop/ret : composés de PUSH et des deux premières
 #lettres de l'instruction originelle.	
 intsig PUSH_PU 	'J_PUSH'

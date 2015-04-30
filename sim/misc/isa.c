@@ -86,6 +86,9 @@ instr_t instruction_set[] =
     /* JB ajout 'jreg' et 'jmem' */
     {"jreg",   HPACK(I_JREG, 0) , 2, R_ARG, 1, 1, NO_ARG, 0, 0 },
     {"jmem",   HPACK(I_JMEM, 0), 6, M_ARG, 1, 0, NO_ARG, 0, 0 },
+    /* instruction enter */
+    {"enter",  HPACK(I_ENTER, 0), 1 , NO_ARG, 0, 0, NO_ARG, 0, 0},
+    {"enter1", HPACK(I_ENTER, 1), 1 , NO_ARG, 0, 0, NO_ARG, 0, 0},
 
     /* For allocation instructions, arg1hi indicates number of bytes */
     {".byte",  0x00, 1, I_ARG, 0, 1, NO_ARG, 0, 0 },
