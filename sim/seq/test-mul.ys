@@ -1,0 +1,8 @@
+main:
+	irmovl 3,%ebx
+	irmovl 5,%ecx
+	irmovl 0,%eax
+	iaddl -1,%eax
+	mul %ebx,%ecx
+	nop
+	halt
