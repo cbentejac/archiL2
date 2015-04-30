@@ -1,0 +1,16 @@
+main:
+	irmovl stack,%esp
+	irmovl 4,%eax
+	irmovl 6,%ebp
+	pushl %eax
+	call test
+	halt
+
+test:
+	enter
+	pushl %eax
+	leave
+	ret
+
+	.pos 0x200
+stack:	
