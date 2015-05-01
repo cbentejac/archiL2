@@ -39,50 +39,54 @@
 \newpage
 
 \section*{Introduction}
-\paragraph{}Dans le cadre de l'Unité d'Enseignement ``Architecture des Ordinateurs'' (INF 155), il nous a été demandé de réaliser un projet consistant à modifier les fichiers sources des simulateurs d'architecture Y86, et ce tant sur la version {\itshape séquentielle} que sur la version {\itshape pipelinée}. Ce projet était constitué de trois parties, présentées sous forme d'exercices.
+\paragraph{}Dans le cadre de l'Unité d'Enseignement ``Architecture des Ordinateurs'' (INF 155), il nous a été demandé de réaliser un projet consistant à modifier les fichiers sources de l'architecture du processeur y86, qui est elle-même une version simplifiée de l'architecture du processeur x86, de sorte à étendre le processeur. Ces modifications devaient être effectuées tant sur la version {\itshape séquentielle} que sur la version {\itshape pipelinée} de l'architecture.
 
-\paragraph{}Le premier exercice consistait à libérer des emplacements parmi les {\itshape opcodes} Y86. Il nous fallait donc factoriser des instructions peu ou prou semblables afin de pouvoir les utiliser avec un seul {\itshape opcode} plutôt que plusieurs.
+\paragraph{}Le projet était constitué de trois parties, présentées sous forme d'exercices.
 
-\paragraph{}Le deuxième exercice avait pour but de nous faire modifier l'architecture afin que cette dernière soit capable de supporter des instructions s'exécutant sur plusieurs cycles, c'est-à-dire des instructions qui sont équivalentes à des enchaînements de plusieurs instructions.
+\paragraph{}Le premier exercice consistait à libérer des emplacements parmi les {\itshape opcodes} y86 en factorisant des instructions les unes avec les autres. En effet, l'architecture y86 ne comprend que 16 {\itshape opcodes} et ne peut donc, par extension, coder que 16 instructions différentes. Or, dans les fichiers servant de source au projet, ces 16 emplacements étaient déjà occupés.
 
-A titre d'exemple, on peut parler de l'instruction X86 \verb+enter+ (décrite dans le projet) qui est équivalente à \verb+push %ebp+ suivi de \verb+rrmovl+\\ \verb+%esp,%ebp+.
+Il nous fallait alors libérer plusieurs de ces {\itshape opcodes} afin de pouvoir, plus tard dans l'avancement du projet, ajouter de nouvelles instructions. Les factorisations que nous avons effectuées se traduisent par un regroupement de plusieurs instructions présentant des analogies sous le même {\itshape opcode}.
 
-\paragraph{}Enfin, le troisième exercice nous demandait d'ajouter plusieurs instructions à l'architecture, et notamment l'instruction \verb+enter+.
+\paragraph{}Le deuxième exercice avait pour but de nous faire modifier l'architecture du processeur afin que cette dernière soit capable de supporter des instructions s'exécutant sur plusieurs cycles, c'est-à-dire des instructions qui sont équivalentes à des enchaînements de plusieurs ``sous-instructions''.
 
-\paragraph{}Ce rapport est le compte-rendu du travail sur le projet que notre binôme, constitué de Paul Beziau et de Candice Bentéjac (groupe IN400A2), a effectué.
+A titre d'exemple, on peut parler de l'instruction du processeur x86 \verb+enter+ (décrite dans le sujet du projet) qui est équivalente à \verb+push %ebp+ suivi de \verb+rrmovl+\\ \verb+%esp,%ebp+.
 
-\newpage
+\paragraph{}Enfin, le troisième exercice nous demandait d'ajouter plusieurs instructions à l'architecture, telle que l'instruction \verb+enter+ précitée. Cet exercice étant dans la continuité du précédent, les instructions à ajouter étaient précisément des instructions s'exécutant sur plusieurs cycles.
+
+\paragraph{}Ce rapport est le compte-rendu du travail sur le projet que notre binôme, constitué de Paul Beziau et de Candice Bentéjac (groupe IN400 A2), a effectué.
+
+
 
 
 \section{Exercice 1 : De la place dans les opcodes}
+\paragraph{}Le but de l'exercice était de libérer des {\itshape opcodes}, plus particulièrement les {\itshape opcodes} \verb+I_ALUI+ et \verb+I_IRMOVL+, en factorisant les instructions qui en dépendaient avec des instructions similaires qui dépendaient d'autres {\itshape opcodes}.
+
 \subsection{Factorisation de iaddl etc. avec addl etc.}
-\paragraph{}Il nous a été demandé, dans un premier temps, de factoriser l'opérande \verb+iopl+ avec \verb+opl+ afin de libérer l'{\itshape opcode} \verb+I_ALUI+. Les instructions que nous factorisions étaient alors toutes celles utilisant l'ALU (et effectuant donc des calculs), telles que \verb+iaddl+ ou \verb+isubl+, par exemple.
+\paragraph{}Dans un premier temps, il nous a été demandé de libérer l'{\itshape opcode} \verb+I_ALUI+ en factorisant les instructions l'utilisant avec celles utilisant l'{\itshape opcode} \verb+I_OPL+.
 
-\paragraph{}Pour effectuer cette factorisation, nous avons commencé par modifier les fichiers \verb+misc/isa.h+ et \verb+misc/isa.c+ comme indiqué dans le sujet. Cela nous a permis de libérer l'{\itshape opcode} \verb+I_ALUI+ et de le transformer en \verb+I_FREE1+, qui ne correspondait désormais plus à aucune opération.
+\paragraph{}Nous avons commencé par supprimer l'{\itshape opcode} \verb+I_ALUI+ comme cela était indiqué dans le sujet du projet. Les instructions utilisant auparavant l'{\itshape opcode} \verb+I_ALUI+ (et par extension, l'\verb+icode IOPL+) étant désormais confondues avec celles dépendant de l'{\itshape opcode} \verb+I_ALU+ (\verb+icode OPL+), il nous fallait alors les distinguer.
 
-\paragraph{}Une fois ces premières modifications effectuées, il nous a fallu éditer les fichiers HCL \verb+seq/seq-std.hcl+ et \verb+pipe/pipe-std.hcl+ de sorte à ce que les instructions \verb+IOPL+, désormais confondues avec les instructions \verb+OPL+, puissent être différenciées de ces dernières.
+\paragraph{}Avant même de modifier les versions séquentielle et pipelinée de l'architecture, nous avons créé un fichier de test qui effectuait dans un premier temps un \verb+addl+ puis un \verb+iaddl+. L'exécuter avant d'effectuer toute modification de l'architecture via les fichiers HCL nous a permis de remarquer que les instructions de type \verb+iopl+ étaient codées sur un nombre d'octects différent de celui sur lequel étaient codées les instructions de type \verb+opl+ (6 octects pour les \verb+iopl+ contre seulement 2 pour les \verb+opl+).
 
-\paragraph{}Nous nous sommes rapidement retrouvés confrontés à un problème : les instructions \verb+IOPL+ et \verb+OPL+ n'étaient pas codées sur le même nombre de bits, ce qui occasionnait des conflits : les instructions \verb+OPL+ étaient codées sur 2 bits, tandis que les instructions \verb+IOPL+ étaient codées sur 6 bits. Il nous a donc fallu harmoniser cela pour éviter des erreurs.
+Pour éviter des problèmes futurs, nous avons harmonisé le nombre d'octets sur lequel étaient codés les deux types d'instructions en passant celui des \verb+opl+ à 2 (pour ce faire, nous avons directement modifié le tableau des instructions présent dans le fichier \verb+misc/isa.c+).
 
-\paragraph{}Nous avons alors modifié le fichier \verb+misc/isa.c+ dans lequel se trouvait un tableau comprenant toutes les instructions ainsi que le nombre de bits sur lequel elles étaient codées : nous avons indiqué que les instructions \verb+opl+ étaient désormais codées sur 6 bits plutôt que sur 2. Ainsi, si l'on utilise une instruction \verb+IOPL+, bien que celle-ci soit confondue avec une instruction \verb+OPL+ du point de vue de l'{\itshape opcode} (puisque \verb+I_ALUI+ = \verb+I_ALU+) et donc par défaut codée sur 2 bits, elle sera correctement codée sur les 6 bits dont elle a besoin. 
+\paragraph{}Cela fait, nous avons modifié le fichier HCL de la version séquentielle en supprimant les opérandes \verb+IOPL+ à chaque fois qu'ils étaient accolés à des opérandes \verb+OPL+ afin d'éviter des doublons. En effet, leur {\itshape opcode} étant désormais identique, avoir un \verb+IOPL+ au même endroit qu'un \verb+OPL+ revenait à avoir 2 fois un \verb+OPL+.
 
-IMAGES TABLEAU (?)
+\paragraph{}Pour différencier une instruction \verb+iopl+ d'une instruction \verb+opl+, nous avons utilisé le chargement d'un registre en source A de l'ALU comme critère puisqu'une instruction \verb+opl+ prend en paramètre deux registres, tandis qu'\verb+iopl+ prend une constante et un registre. Ainsi, il faut indiquer au processeur que, durant la phase \verb+Execute+, si l'instruction utilise l'\verb+icode OPL+ et n'a préalablement pas chargé de registre en tant que source A (c'est-à-dire que \verb+rA+ est égal à \verb+RNONE+), alors on charge une constante en tant que source A de l'ALU.
 
-\paragraph{}Une fois cela fait, nous avons modifié le fichier HCL de la version séquentielle du simulateur (\verb+misc/seq-std.hcl+). Nous avons commencé par supprimer les opérandes \verb+IOPL+ à chaque fois qu'ils étaient accolés à un opérande \verb+OPL+. En effet, leur {\itshape opcode} étant identique, il n'était plus nécessaire de conserver des ``doublons''.
+\paragraph{}On renvoie donc \verb+valC+ (qui correspond à une constante) plutôt que \verb+valA+ (qui correspond à un registre). Puisque le processeur n'est qu'un ensemble de \verb+if+/\verb+else+, \verb+valA+ ne sera renvoyé que si la condition ``pas de registre chargé en source A durant la phase \verb+Decode+'' est fausse.
 
-\paragraph{}Pour néanmoins distinguer \verb+IOPL+ d'\verb+OPL+, nous avons utilisé le chargement de registre comme critère puisque \verb+IOPL+ charge une constante alors que \verb+OPL+ charge un registre. Ainsi, si \verb+OPL+ ne charge pas de registre (c'es-à-dire que son \verb+rA+ est égal à \verb+RNONE+), cela signifique qu'il s'agit en réalité d'une instruction de type \verb+IOPL+ et on renvoiedonc \verb+valC+ plutôt que \verb+valA+.
+\paragraph{}Nous avons modifié la version pipelinée de l'architecture de la même façon : après avoir supprimé les ``doublons'' \verb+IOPL+, nous avons modifié la phase \verb+Execute+ du processeur (au moment du chargement des sources de l'ALU) de sorte à ce qu'il teste si un registre n'a pas été chargé en tant que source A lors de la phase \verb+Decode+ (c'est-à-dire qu'il teste si \verb+E_srcA+ égale \verb+RNONE+). Le cas échéant, le processeur utilisera \verb+E_valC+ comme source de A de l'ALU ; sinon, il utilisera \verb+E_valA+.
 
-Nous avons procédé d'une manière strictement identique pour modifier le fichier HCL de la version pipelinée du simulateur.
-
-\paragraph{}IMAGES FICHIERS DE TEST UTILISÉS
 
 
 \subsection{Factorisation de irmovl avec rrmovl}
-\paragraph{}La factorisation de \verb+irmovl+ avec \verb+rrmovl+ s'est faite de la même manière que celle de \verb+IOPL+ avec \verb+OPL+. Nous avons dû à nouveau éditer le fichier \verb+misc/isa.c+ pour que l'instruction \verb+rrmovl+, normalement codée sur 2 bits, soit désormais codée sur 6 bits, à l'image de l'instruction \verb+irmovl+.
+\paragraph{}La deuxième partie de l'exercice nous demandait de libérer cette fois-ci l'{\itshape opcode} \verb+I_IRMOVL+ et de factoriser son instruction avec celle de l'{\itshape opcode} \verb+I_RRMOVL+.
+\paragraph{}La factorisation de \verb+irmovl+ avec \verb+rrmovl+ s'est faite de la même manière que celle de \verb+iopl+ avec \verb+opl+. Nous avons dû à nouveau libérer un {\itshape opcode} (ici, \verb+I_IRMOVL+) puis  éditer le fichier \verb+misc/isa.c+ pour que l'instruction \verb+rrmovl+, normalement codée sur 2 bits, soit désormais codée sur 6 bits, à l'image de l'instruction \verb+irmovl+.
 
-L'édition des fichiers HCL s'est également faite de la même façon.
+\paragraph{}L'édition des fichiers HCL des versions séquentielle et pipelinée a également été strictement identique à celle effectuée pour la factorisation d'\verb+iopl+ avec \verb+opl+, à la différence près que l'\verb+icode+ testé était bien entendu \verb+rrmovl+ plutôt que \verb+opl+.
 
-\subsection{Factorisation de push, pop, call, ret}
+\subsection{Factorisation de push, pop, call, ret (bonus)}
 
 
 \section{Exercice 2}
