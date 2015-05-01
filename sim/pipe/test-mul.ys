@@ -3,7 +3,17 @@ main:
 	irmovl 5,%ecx
 	irmovl 0,%eax
 	iaddl -1,%eax
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
 	mul %ebx,%ecx
 	nop
-	irmovl 1, %edx
+	nop
+	nop
+	nop
+	nop
+	nop
 	halt

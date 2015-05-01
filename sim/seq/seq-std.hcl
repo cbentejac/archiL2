@@ -116,7 +116,7 @@ int instr_next_ifun = [
 
 ## What register should be used as the A source?
 int srcA = [
-    icode == MUL && ifun == 1 : rB;
+	icode == MUL && ifun == 1 : rB;
 	icode in { RRMOVL, RMMOVL, OPL, PUSHL, JREG, MUL } : rA;
 	icode in { LEAVE, ENTER } : REBP;
 	1 : RNONE; # Don't need register
@@ -124,8 +124,7 @@ int srcA = [
 
 ## What register should be used as the B source?
 int srcB = [
-    #icode == MUL && ifun == 1 : rB;
-    icode == MUL : REAX;
+	icode == MUL : REAX;
 	icode in { OPL, RMMOVL, MRMOVL, JMEM } : rB;
 	icode in { PUSHL, ENTER } : RESP;
 	icode in { LEAVE } : REBP;
@@ -137,14 +136,14 @@ int dstE = [
 	icode in { RRMOVL, OPL } : rB;
 	icode == ENTER && ifun == 1 : REBP;
 	icode in { PUSHL, LEAVE, ENTER } : RESP;
-    icode == MUL && ifun == 1 : rB;    
-    icode == MUL : REAX;
+	icode == MUL && ifun == 1 : rB;    
+	icode == MUL : REAX;
 	1 : RNONE;  # Don't need register
 ];
 
 ## What register should be used as the M destination?
 int dstM = [
-    icode == PUSHL && ifun in { PUSH_PO, PUSH_RE } : rA;
+	icode == PUSHL && ifun in { PUSH_PO, PUSH_RE } : rA;
 	icode == MRMOVL : rA;
 	icode in { LEAVE } : REBP;
 	1 : RNONE;  # Don't need register
@@ -156,9 +155,9 @@ int dstM = [
 int aluA = [
 	icode == OPL && rA == RNONE: valC;
 	icode == OPL : valA;
-    icode == MUL && ifun == 0 : 0;
-    icode == MUL && cc == 2: 0;
-    icode == MUL : valA;
+	icode == MUL && ifun == 0 : 0;
+	icode == MUL && cc == 2: 0;
+	icode == MUL : valA;
 	icode == RRMOVL && rA == RNONE: valC;
 	icode in { RRMOVL } : valA;
 	icode in { RMMOVL, MRMOVL, JMEM } : valC;
@@ -172,9 +171,9 @@ int aluA = [
 ## Select input B to ALU
 int aluB = [
 	icode in { RMMOVL, MRMOVL, OPL, PUSHL, JMEM, LEAVE, ENTER } : valB;
-    icode == MUL && ifun == 0 : 0;
-    icode == MUL && ifun == 1 :-1;
-    icode == MUL : valB;
+	icode == MUL && ifun == 0 : 0;
+	icode == MUL && ifun == 1 :-1;
+	icode == MUL : valB;
 	icode in { RRMOVL } : 0;
 	# Other instructions don't need ALU
 ];
@@ -187,7 +186,7 @@ int alufun = [
 
 ## Should the condition codes be updated?
 bool set_cc = icode in { OPL } ||
-              icode ==MUL && ifun in { 0, 1 };
+              icode == MUL && ifun in { 0, 1 };
 
 ################ Memory Stage    ###################################
 
@@ -205,9 +204,9 @@ bool mem_write =
 
 ## Select memory address
 int mem_addr = [
-    icode == PUSHL && ifun in { PUSH_PU, PUSH_CA } : valE;
+	icode == PUSHL && ifun in { PUSH_PU, PUSH_CA } : valE;
 	icode in { RMMOVL, MRMOVL, JMEM, ENTER } : valE;
-    icode == PUSHL : valB;
+	icode == PUSHL : valB;
 	icode == LEAVE : valA;
 	# Other instructions don't need address
 ];

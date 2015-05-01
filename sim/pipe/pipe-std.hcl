@@ -40,6 +40,7 @@ intsig LEAVE	'I_LEAVE'
 
 intsig ENTER	'I_ENTER'
 intsig MUL      'I_MUL'
+
 #ifun des instructions PUSHL/CALL/POPL/RET (composée de PUSH_ et des deux premières lettres de l'instruction originelle)
 intsig PUSH_PU 'J_PUSH'
 intsig PUSH_PO 'J_POP'
@@ -58,12 +59,15 @@ intsig REAX     'REG_EAX' #eax register
 ##### ALU Functions referenced explicitly ##########################
 intsig ALUADD	'A_ADD'		# ALU should add its arguments
 
+intsig cc 'cc'
+
 ##### Signals that can be referenced by control logic ##############
 
 ##### Pipeline Register F ##########################################
 
 intsig F_predPC 'pc_curr->pc'		# Predicted value of PC
 
+	
 ##### Intermediate Values in Fetch Stage ###########################
 
 intsig f_icode	'if_id_next->icode'  # Fetched instruction code
@@ -154,16 +158,17 @@ bool instr_valid = f_icode in
 
 # Predict next value of PC
 int new_F_predPC = [
-    f_icode == PUSHL && f_ifun == PUSH_CA : f_valC;
+	f_icode == PUSHL && f_ifun == PUSH_CA : f_valC;
 	f_icode == JXX : f_valC;
 	1 : f_valP;
 ];
 
 int instr_next_ifun = [
-    f_icode == MUL && f_ifun == 0 : 1;
-    f_icode == MUL && f_ifun == 1 : 2;
-    f_icode == MUL && f_ifun == 2 : 1;
-    f_icode == ENTER && f_ifun == 0 : 1;
+	f_icode == MUL && f_ifun == 0 : 1;
+	f_icode == MUL && f_ifun == 1 : 2;
+	#f_icode == MUL && f_ifun == 2 && cc == 2 : -1;
+	f_icode == MUL : 1;
+	f_icode == ENTER && f_ifun == 0 : 1;
 	1 : -1;
 ];
 	
@@ -172,15 +177,16 @@ int instr_next_ifun = [
 
 ## What register should be used as the A source?
 int new_E_srcA = [
-    D_icode == MUL && D_ifun == 1 : D_rB;
-    D_icode == PUSHL && D_ifun in { PUSH_PO, PUSH_RE } : RESP;
-	D_icode in { RMMOVL, OPL, PUSHL, JREG } : D_rA;
+	D_icode == MUL && D_ifun == 1 : D_rB;
+	D_icode == PUSHL && D_ifun in { PUSH_PO, PUSH_RE } : RESP;
+	D_icode in { RMMOVL, OPL, PUSHL, JREG, MUL } : D_rA;
 	D_icode in { LEAVE, ENTER } : REBP;
 	1 : RNONE; # Don't need register
 ];
 
 ## What register should be used as the B source?
 int new_E_srcB = [
+	D_icode == MUL : REAX;
 	D_icode in { OPL, RMMOVL, MRMOVL, JMEM } : D_rB;
 	D_icode in { PUSHL, ENTER } : RESP;
 	D_icode in { LEAVE } : REBP;
@@ -192,12 +198,14 @@ int new_E_dstE = [
 	D_icode in { RRMOVL, OPL } : D_rB;
 	D_icode == ENTER && D_ifun == 1 : REBP;
 	D_icode in { PUSHL, LEAVE, ENTER } : RESP;
+	D_icode == MUL && D_ifun == 1 : D_rB;
+	D_icode == MUL : REAX;
 	1 : DNONE;  # Don't need register DNONE, not RNONE
 ];
 
 ## What register should be used as the M destination?
 int new_E_dstM = [
-    D_icode == PUSHL && D_ifun in { PUSH_PO, PUSH_RE} : D_rA; 
+	D_icode == PUSHL && D_ifun in { PUSH_PO, PUSH_RE} : D_rA; 
 	D_icode == MRMOVL : D_rA;
 	D_icode in { LEAVE } : REBP;
 	1 : DNONE;  # Don't need register DNONE, not RNONE
@@ -231,6 +239,9 @@ int new_E_valB = [
 	int aluA = [
 	E_icode == OPL && E_srcA == RNONE : E_valC;
 	E_icode == OPL : E_valA;
+	E_icode == MUL && E_ifun == 0 : 0;
+	E_icode == MUL && cc == 2: 0;
+	E_icode == MUL : E_valA;
 	E_icode == RRMOVL && E_srcA == RNONE : E_valC;
 	E_icode in { RRMOVL } : E_valA;
 	E_icode in { RMMOVL, MRMOVL, JMEM } : E_valC;
@@ -243,6 +254,9 @@ int new_E_valB = [
 
 ## Select input B to ALU
 int aluB = [
+	E_icode == MUL && E_ifun == 0 : 0;
+	E_icode == MUL && E_ifun == 1 :-1;
+	E_icode == MUL : E_valB;
 	E_icode in { RMMOVL, MRMOVL, OPL, PUSHL, JMEM, LEAVE, ENTER } : E_valB;
 	E_icode in { RRMOVL } : 0;
 	# Other instructions don't need ALU
@@ -255,15 +269,16 @@ int alufun = [
 ];
 
 ## Should the condition codes be updated?
-bool set_cc = E_icode in { OPL };
+bool set_cc = E_icode in { OPL } ||
+		E_icode == MUL && E_ifun in { 0, 1 };
 
 
 ################ Memory Stage ######################################
 
 ## Select memory address
 int mem_addr = [
-    M_icode == PUSHL && M_ifun in { PUSH_PU, PUSH_CA } : M_valE;
-    M_icode in { RMMOVL, MRMOVL, JMEM, ENTER } : M_valE;
+	M_icode == PUSHL && M_ifun in { PUSH_PU, PUSH_CA } : M_valE;
+	M_icode in { RMMOVL, MRMOVL, JMEM, ENTER } : M_valE;
 	M_icode in { PUSHL, LEAVE } : M_valA;
 	# Other instructions don't need address
 ];
