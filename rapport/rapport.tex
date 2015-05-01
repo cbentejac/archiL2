@@ -82,11 +82,36 @@ Pour éviter des problèmes futurs, nous avons harmonisé le nombre d'octets sur
 
 \subsection{Factorisation de irmovl avec rrmovl}
 \paragraph{}La deuxième partie de l'exercice nous demandait de libérer cette fois-ci l'{\itshape opcode} \verb+I_IRMOVL+ et de factoriser son instruction avec celle de l'{\itshape opcode} \verb+I_RRMOVL+.
+
 \paragraph{}La factorisation de \verb+irmovl+ avec \verb+rrmovl+ s'est faite de la même manière que celle de \verb+iopl+ avec \verb+opl+. Nous avons dû à nouveau libérer un {\itshape opcode} (ici, \verb+I_IRMOVL+) puis  éditer le fichier \verb+misc/isa.c+ pour que l'instruction \verb+rrmovl+, normalement codée sur 2 bits, soit désormais codée sur 6 bits, à l'image de l'instruction \verb+irmovl+.
 
 \paragraph{}L'édition des fichiers HCL des versions séquentielle et pipelinée a également été strictement identique à celle effectuée pour la factorisation d'\verb+iopl+ avec \verb+opl+, à la différence près que l'\verb+icode+ testé était bien entendu \verb+rrmovl+ plutôt que \verb+opl+.
 
+
+
 \subsection{Factorisation de push, pop, call, ret (bonus)}
+\paragraph{}La question bonus de l'exercice 1 nous demander d'étudier les instructions \verb+push+, \verb+pop+, \verb+call+ et \verb+ret+, relativement proches les unes des autres, et de déterminer s'il était intéressant de les factoriser par couples \verb+push/pop | call/ret+, \verb+push/call | pop/ret+ ou encore par quadruplet \verb+push/pop/call/ret+.
+
+\paragraph{}Il nous a, dès le départ, semblé évident que l'option la plus intéressante était la factorisation par quadruplet. Cette dernière permettait en effet de rassembler quatre instructions sous la bannière d'un unique {\itshape opcode}, ce qui aurait alors engendré la libération de 3 {\itshape opcodes}. Néanmoins, la factorisation directe des 4 instructions nous paraissait fastidieuse. C'est pour cette raison que nous avons décidé de procéder en deux temps : nous allions d'abord factoriser par couples, et une fois cette factorisation faite, nous pourrions factoriser par quadruplet.
+
+\paragraph{}Pour déterminer quelle combinaison de couples (\verb+push/pop | call/ret+ ou \verb+push/call | pop/ret+) était la plus intéressante à utiliser, nous avons tout simplement étudié l'architecture séquentielle du processeur et effectué un comptage manuel des occurrences de chaque couple. Il est alors apparu que les couples qui revenaient le plus fréquemment étaient \verb+push/call+ et \verb+pop/ret+. Nous avons conséquemment décidé de factoriser les instructions suivant ce schéma.
+
+\paragraph{}Nous avons libéré deux {\itshape opcodes} (\verb+I_CALL+ et \verb+I_RET+, que nous avons respectivement renommés \verb+I_FREE3+ et \verb+I_FREE4+) comme nous l'avions fait lors des questions précédentes. En examinant plus attentivement le code de \verb+misc/isa.h+, nous avons remarqué plusieurs énumérations (marquées par des \verb+enum+) qui contenaient des instructions différentes pour un même {\itshape opcode}. Il y avait par exemple une énumération pour les différentes conditions de l'{\itshape opcode} \verb+I_JUMP+, ou pour les différentes opérations que pouvait effectuer l'ALU. 
+
+\paragraph{}Comprenant que ces énumérations correspondaient à des états différents de l'\verb+ifun+ pour un même \verb+icode+, nous avons jugé pertinent de créer deux énumérations supplémentaires, une pour le couple \verb+push/call+ et l'autre pour le couple \verb+pop/ret+, ce qui a conduit à l'ajout suivant :
+\begin{quote}
+\begin{verbatim}
+typedef enum { J_PUSH, J_CALL } push_t;
+typedef enum { J_POP, J_RET } pop_t;
+\end{verbatim}
+\end{quote}
+Dans \verb+misc/isa.c+, nous avons également modifié le nombre d'octets sur lequel étaient codées les instructions. Ainsi, \verb+push+ et \verb+call+ sont passées à 6 octets (initialement codées sur 2 et 5 octets) tandis que \verb+pop+ et \verb+ret+ sont passées à 2 octets (initialement codées sur 2 et 1 octets).
+
+\paragraph{}IMPLEMENTATION SEQ
+
+\paragraph{}IMPLEMENTATION QUADRUPLET (ENUM + TAB A 6)
+
+\paragraph{}IMPLEMENTATION PIPE
 
 
 \section{Exercice 2}
@@ -94,6 +119,10 @@ Pour éviter des problèmes futurs, nous avons harmonisé le nombre d'octets sur
 
 
 \section{Exercice 3}
+\subsection{Instruction enter}
+
+\subsection{Instruction mul}
+
 
 \section*{Conclusion}
 
