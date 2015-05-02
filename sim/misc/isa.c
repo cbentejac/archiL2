@@ -93,7 +93,9 @@ instr_t instruction_set[] =
     /* instruction enter */
     {"enter",  HPACK(I_ENTER, 0), 1 , NO_ARG, 0, 0, NO_ARG, 0, 0},
     {"enter1", HPACK(I_ENTER, 1), 1 , NO_ARG, 0, 0, NO_ARG, 0, 0},
-
+    /* instruction lods/stos */
+    {"lods",   HPACK(I_LODS, J_LODS), 1, NO_ARG, 0, 0, NO_ARG, 0, 0},
+    {"stos",   HPACK(I_LODS, J_STOS), 1, NO_ARG, 0, 0, NO_ARG, 0, 0},
     /* For allocation instructions, arg1hi indicates number of bytes */
     {".byte",  0x00, 1, I_ARG, 0, 1, NO_ARG, 0, 0 },
     {".word",  0x00, 2, I_ARG, 0, 2, NO_ARG, 0, 0 },

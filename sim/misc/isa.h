@@ -25,7 +25,7 @@ typedef enum { R_ARG, M_ARG, I_ARG, NO_ARG } arg_t;
  * mais il faut alors recompiler tous les fichiers yo
  */
 typedef enum { I_NOP, I_HALT, I_RRMOVL, I_ENTER, I_RMMOVL, I_MRMOVL,
-	       I_ALU, I_JXX, I_MUL, I_FREE4, I_PUSHL, I_FREE5,
+	       I_ALU, I_JXX, I_MUL, I_LODS, I_PUSHL, I_FREE5,
 	       I_FREE1, I_LEAVE, I_JREG, I_JMEM, I_POP2 } itype_t;
 
 #define I_ALUI I_ALU
@@ -50,6 +50,8 @@ typedef enum { J_YES, J_LE, J_L, J_E, J_NE, J_GE, J_G } jump_t;
 /* Push/Call et Pop/Ret */
 typedef enum { J_PUSH, J_CALL, J_POP, J_RET } push_t;
 
+/* lods/stos */
+typedef enum { J_LODS, J_STOS } lods_t;
 /* Pack itype and function into single byte */
 #define HPACK(hi,lo) ((((hi)&0xF)<<4)|((lo)&0xF))
 
