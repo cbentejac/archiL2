@@ -1,19 +1,7 @@
 main:
 	irmovl 3,%ebx
+	rrmovl %ebx,%ebp
 	irmovl 5,%ecx
-	irmovl 0,%eax
-	iaddl -1,%eax
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
 	mul %ebx,%ecx
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+	rrmovl %eax,%esp
 	halt
