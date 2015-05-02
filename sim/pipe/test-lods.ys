@@ -1,0 +1,11 @@
+main:
+	irmovl mem, %esi
+	lods
+	#lods
+	halt
+
+	.align 4
+mem:	
+	.long 3	
+	.long 4
+	.long 35
