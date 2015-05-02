@@ -1,0 +1,11 @@
+main:
+	irmovl mem,%edi
+	irmovl 7,%eax
+	stos
+	stos
+	halt
+	.align 4
+mem:
+	.long 3
+	.long 4
+	.long 46
