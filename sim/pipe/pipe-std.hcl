@@ -40,12 +40,16 @@ intsig LEAVE	'I_LEAVE'
 
 intsig ENTER	'I_ENTER'
 intsig MUL      'I_MUL'
+intsig LODS	'I_LODS'
 
 #ifun des instructions PUSHL/CALL/POPL/RET (composée de PUSH_ et des deux premières lettres de l'instruction originelle)
 intsig PUSH_PU 'J_PUSH'
 intsig PUSH_PO 'J_POP'
 intsig PUSH_CA 'J_CALL'
 intsig PUSH_RE 'J_RET'
+
+intsig LODS_LO 'J_LODS'
+intsig LODS_ST 'J_STOS'
 	
 	
 
@@ -54,7 +58,9 @@ intsig RESP     'REG_ESP'    	# Stack Pointer
 intsig REBP     'REG_EBP'    	# Frame Pointer
 intsig RNONE    'REG_NONE'   	# Special value indicating "no register"
 intsig DNONE    'DEST_NONE'     # "no destination register"
-intsig REAX     'REG_EAX' #eax register
+intsig REAX     'REG_EAX'	#eax register
+intsig RESI	'REG_ESI'	#esi register
+intsig REDI	'REG_EDI'	#edi register
 
 ##### ALU Functions referenced explicitly ##########################
 intsig ALUADD	'A_ADD'		# ALU should add its arguments
@@ -154,7 +160,7 @@ bool need_valC =
 
 bool instr_valid = f_icode in 
 	{ NOP, HALT, RRMOVL, IRMOVL, RMMOVL, MRMOVL,
-	       OPL, JXX, PUSHL, JREG, JMEM, LEAVE, ENTER, MUL };
+	       OPL, JXX, PUSHL, JREG, JMEM, LEAVE, ENTER, MUL, LODS };
 
 # Predict next value of PC
 int new_F_predPC = [
@@ -168,6 +174,7 @@ int instr_next_ifun = [
 	f_icode == MUL && f_ifun == 1 : 2;
 	f_icode == MUL && f_ifun == 2 && (M_icode == MUL) && cc == 2 : -1;
 	E_icode == MUL : 1;
+        f_icode == LODS && f_ifun == LODS_ST : 2;
 	f_icode == ENTER && f_ifun == 0 : 1;
 	1 : -1;
 ];
@@ -178,6 +185,9 @@ int instr_next_ifun = [
 ## What register should be used as the A source?
 int new_E_srcA = [
 	D_icode == MUL && D_ifun == 1 : D_rB;
+	D_icode == LODS && D_ifun == LODS_LO : RESI;
+        D_icode == LODS && D_ifun == LODS_ST : REAX;
+	D_icode == LODS : REDI;
 	D_icode == PUSHL && D_ifun in { PUSH_PO, PUSH_RE } : RESP;
 	D_icode in { RMMOVL, OPL, PUSHL, JREG, MUL, RRMOVL } : D_rA;
 	D_icode in { LEAVE, ENTER } : REBP;
@@ -186,7 +196,9 @@ int new_E_srcA = [
 
 ## What register should be used as the B source?
 int new_E_srcB = [
-	D_icode == MUL : REAX;
+	D_icode in { MUL } : REAX;
+        D_icode == LODS && D_ifun == LODS_ST : REDI;
+	D_icode == LODS : REAX;
 	D_icode in { OPL, RMMOVL, MRMOVL, JMEM } : D_rB;
 	D_icode in { PUSHL, ENTER } : RESP;
 	D_icode in { LEAVE } : REBP;
@@ -196,6 +208,8 @@ int new_E_srcB = [
 ## What register should be used as the E destination?
 int new_E_dstE = [
 	D_icode in { RRMOVL, OPL } : D_rB;
+	D_icode == LODS && D_ifun == LODS_LO : RESI;
+	D_icode == LODS && D_ifun == 2: REDI;
 	D_icode == ENTER && D_ifun == 1 : REBP;
 	D_icode in { PUSHL, LEAVE, ENTER } : RESP;
 	D_icode == MUL && D_ifun == 1 : D_rB;
@@ -206,6 +220,7 @@ int new_E_dstE = [
 ## What register should be used as the M destination?
 int new_E_dstM = [
 	D_icode == PUSHL && D_ifun in { PUSH_PO, PUSH_RE} : D_rA; 
+	D_icode == LODS && D_ifun== LODS_LO : REAX;
 	D_icode == MRMOVL : D_rA;
 	D_icode in { LEAVE } : REBP;
 	1 : DNONE;  # Don't need register DNONE, not RNONE
@@ -243,6 +258,8 @@ int new_E_valB = [
 	E_icode == MUL && cc == 2: 0;
 	E_icode == MUL : E_valA;
 	E_icode == RRMOVL && E_srcA == RNONE : E_valC;
+        E_icode == LODS && E_ifun == LODS_ST : E_valB;
+        E_icode == LODS : E_valA;
 	E_icode in { RRMOVL } : E_valA;
 	E_icode in { RMMOVL, MRMOVL, JMEM } : E_valC;
    	E_icode == PUSHL && E_ifun in { PUSH_PU, PUSH_CA } : -4;
@@ -257,6 +274,8 @@ int aluB = [
 	E_icode == MUL && E_ifun == 0 : 0;
 	E_icode == MUL && E_ifun == 1 :-1;
 	E_icode == MUL : E_valB;
+        E_icode == LODS && E_ifun == LODS_ST : 0;
+	E_icode == LODS : 4;
 	E_icode in { RMMOVL, MRMOVL, OPL, PUSHL, JMEM, LEAVE, ENTER } : E_valB;
 	E_icode in { RRMOVL } : 0;
 	# Other instructions don't need ALU
@@ -278,6 +297,8 @@ bool set_cc = E_icode in { OPL } ||
 ## Select memory address
 int mem_addr = [
 	M_icode == PUSHL && M_ifun in { PUSH_PU, PUSH_CA } : M_valE;
+        M_icode == LODS && M_ifun == LODS_ST : M_valE;
+	M_icode == LODS : M_valA;
 	M_icode in { RMMOVL, MRMOVL, JMEM, ENTER } : M_valE;
 	M_icode in { PUSHL, LEAVE } : M_valA;
 	# Other instructions don't need address
@@ -285,10 +306,12 @@ int mem_addr = [
 
 ## Set read control signal
 bool mem_read = (M_icode == PUSHL && M_ifun in { PUSH_PO, PUSH_RE }) ||
+     	      	(M_icode == LODS && M_ifun == LODS_LO) ||
                 (M_icode in { MRMOVL, JMEM, LEAVE });
 
 ## Set write control signal
 bool mem_write = (M_icode == PUSHL && M_ifun in { PUSH_PU, PUSH_CA }) ||
+     	       	 (M_icode == LODS && M_ifun == LODS_ST) ||
                  (M_icode == ENTER && M_ifun == 0) ||
                  (M_icode == RMMOVL);
 
