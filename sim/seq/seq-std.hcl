@@ -41,20 +41,24 @@ intsig LEAVE	'I_LEAVE'
 
 intsig ENTER	'I_ENTER'
 intsig MUL	'I_MUL'
-
+intsig LODS	'I_LODS'
 #I_fun pour la factorisation push/call/pop/ret : composés de PUSH et des deux premières
 #lettres de l'instruction originelle.	
 intsig PUSH_PU 	'J_PUSH'
 intsig PUSH_CA 	'J_CALL'
-intsig PUSH_PO   'J_POP'
-intsig PUSH_RE    'J_RET'
-	
+intsig PUSH_PO	'J_POP'
+intsig PUSH_RE  'J_RET'
+
+intsig LODS_LO  'J_LODS'
+intsig LODS_ST	'J_STOS'	
 
 ##### Symbolic representation of Y86 Registers referenced explicitly #####
 intsig RESP     'REG_ESP'    	# Stack Pointer
 intsig REBP     'REG_EBP'    	# Frame Pointer
 intsig RNONE    'REG_NONE'   	# Special value indicating "no register"
 intsig REAX	'REG_EAX'	# eax register
+intsig RESI	'REG_ESI'	# esi register
+intsig REDI	'REG_EDI'	# edi register
 
 ##### ALU Functions referenced explicitly                            #####
 intsig ALUADD	'A_ADD'		# ALU should add its arguments
@@ -101,7 +105,7 @@ bool need_valC =
 
 bool instr_valid = icode in 
 	{ NOP, HALT, RRMOVL, RMMOVL, MRMOVL,
-	OPL, JXX, PUSHL, JREG, JMEM, LEAVE, ENTER, MUL };
+	OPL, JXX, PUSHL, JREG, JMEM, LEAVE, ENTER, MUL, LODS };
 
 int instr_next_ifun = [
         icode == MUL && ifun == 0 : 1;
@@ -117,6 +121,8 @@ int instr_next_ifun = [
 ## What register should be used as the A source?
 int srcA = [
 	icode == MUL && ifun == 1 : rB;
+	icode == LODS && ifun == LODS_LO :  RESI;
+	icode == LODS : REDI;
 	icode in { RRMOVL, RMMOVL, OPL, PUSHL, JREG, MUL } : rA;
 	icode in { LEAVE, ENTER } : REBP;
 	1 : RNONE; # Don't need register
@@ -125,6 +131,7 @@ int srcA = [
 ## What register should be used as the B source?
 int srcB = [
 	icode == MUL : REAX;
+	icode == LODS : REAX;
 	icode in { OPL, RMMOVL, MRMOVL, JMEM } : rB;
 	icode in { PUSHL, ENTER } : RESP;
 	icode in { LEAVE } : REBP;
@@ -134,6 +141,8 @@ int srcB = [
 ## What register should be used as the E destination?
 int dstE = [
 	icode in { RRMOVL, OPL } : rB;
+	icode == LODS && ifun == LODS_LO : RESI;
+	icode == LODS : REDI;
 	icode == ENTER && ifun == 1 : REBP;
 	icode in { PUSHL, LEAVE, ENTER } : RESP;
 	icode == MUL && ifun == 1 : rB;    
@@ -144,6 +153,7 @@ int dstE = [
 ## What register should be used as the M destination?
 int dstM = [
 	icode == PUSHL && ifun in { PUSH_PO, PUSH_RE } : rA;
+	icode == LODS && ifun == LODS_LO : REAX;
 	icode == MRMOVL : rA;
 	icode in { LEAVE } : REBP;
 	1 : RNONE;  # Don't need register
@@ -160,6 +170,7 @@ int aluA = [
 	icode == MUL : valA;
 	icode == RRMOVL && rA == RNONE: valC;
 	icode in { RRMOVL } : valA;
+	icode == LODS : valA;
 	icode in { RMMOVL, MRMOVL, JMEM } : valC;
 	icode == PUSHL  && ifun in { PUSH_PU, PUSH_CA } : -4;
 	icode == ENTER && ifun == 1 : 0;
@@ -174,6 +185,7 @@ int aluB = [
 	icode == MUL && ifun == 0 : 0;
 	icode == MUL && ifun == 1 :-1;
 	icode == MUL : valB;
+	icode == LODS : 4;
 	icode in { RRMOVL } : 0;
 	# Other instructions don't need ALU
 ];
@@ -193,12 +205,14 @@ bool set_cc = icode in { OPL } ||
 ## Set read control signal
 bool mem_read =
     (icode == PUSHL && ifun in { PUSH_PO, PUSH_RE }) ||
+    (icode == LODS && ifun == LODS_LO) ||
     (icode in { MRMOVL, JMEM, LEAVE });
 
 
 ## Set write control signal
 bool mem_write =
     (icode == PUSHL && ifun in { PUSH_PU, PUSH_CA }) ||
+    (icode == LODS && ifun == LODS_ST) ||
     (icode == ENTER && ifun == 0) ||
     (icode == RMMOVL);
 
@@ -206,6 +220,7 @@ bool mem_write =
 int mem_addr = [
 	icode == PUSHL && ifun in { PUSH_PU, PUSH_CA } : valE;
 	icode in { RMMOVL, MRMOVL, JMEM, ENTER } : valE;
+	icode == LODS : valA;
 	icode == PUSHL : valB;
 	icode == LEAVE : valA;
 	# Other instructions don't need address
@@ -216,6 +231,7 @@ int mem_data = [
 	# Return PC
 	icode == PUSHL && ifun == PUSH_CA : valP;
 	icode == PUSHL && ifun == PUSH_PU : valA;
+	icode == LODS : valB;
 	# Value from register
 	icode in { RMMOVL, ENTER } : valA;
 	
