@@ -166,8 +166,8 @@ int new_F_predPC = [
 int instr_next_ifun = [
 	f_icode == MUL && f_ifun == 0 : 1;
 	f_icode == MUL && f_ifun == 1 : 2;
-	#f_icode == MUL && f_ifun == 2 && cc == 2 : -1;
-	f_icode == MUL : 1;
+	f_icode == MUL && f_ifun == 2 && (M_icode == MUL) && cc == 2 : -1;
+	E_icode == MUL : 1;
 	f_icode == ENTER && f_ifun == 0 : 1;
 	1 : -1;
 ];
@@ -179,7 +179,7 @@ int instr_next_ifun = [
 int new_E_srcA = [
 	D_icode == MUL && D_ifun == 1 : D_rB;
 	D_icode == PUSHL && D_ifun in { PUSH_PO, PUSH_RE } : RESP;
-	D_icode in { RMMOVL, OPL, PUSHL, JREG, MUL } : D_rA;
+	D_icode in { RMMOVL, OPL, PUSHL, JREG, MUL, RRMOVL } : D_rA;
 	D_icode in { LEAVE, ENTER } : REBP;
 	1 : RNONE; # Don't need register
 ];
