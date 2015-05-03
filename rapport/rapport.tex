@@ -69,12 +69,14 @@ A titre d'exemple, on peut parler de l'instruction du processeur x86 \verb+enter
 
 Pour éviter des problèmes futurs, nous avons harmonisé le nombre d'octets sur lequel étaient codés les deux types d'instructions en passant celui des \verb+opl+ à 2 (pour ce faire, nous avons directement modifié le tableau des instructions présent dans le fichier \verb+misc/isa.c+).
 
-\paragraph{}Cela fait, nous avons modifié le fichier HCL de la version séquentielle en supprimant les opérandes \verb+IOPL+ à chaque fois qu'ils étaient accolés à des opérandes \verb+OPL+ afin d'éviter des doublons. En effet, leur {\itshape opcode} étant désormais identique, avoir un \verb+IOPL+ au même endroit qu'un \verb+OPL+ revenait à avoir 2 fois un \verb+OPL+.
+\subsubsection{Version séquentielle}
+\paragraph{}Cette première partie réalisée, nous avons modifié le fichier HCL de la version séquentielle en supprimant les opérandes \verb+IOPL+ à chaque fois qu'ils étaient accolés à des opérandes \verb+OPL+ afin d'éviter des doublons. En effet, leur {\itshape opcode} étant désormais identique, avoir un \verb+IOPL+ au même endroit qu'un \verb+OPL+ revenait à avoir 2 fois un \verb+OPL+.
 
 \paragraph{}Pour différencier une instruction \verb+iopl+ d'une instruction \verb+opl+, nous avons utilisé le chargement d'un registre en source A de l'ALU comme critère puisqu'une instruction \verb+opl+ prend en paramètre deux registres, tandis qu'\verb+iopl+ prend une constante et un registre. Ainsi, il faut indiquer au processeur que, durant la phase \verb+Execute+, si l'instruction utilise l'\verb+icode OPL+ et n'a préalablement pas chargé de registre en tant que source A (c'est-à-dire que \verb+rA+ est égal à \verb+RNONE+), alors on charge une constante en tant que source A de l'ALU.
 
 \paragraph{}On renvoie donc \verb+valC+ (qui correspond à une constante) plutôt que \verb+valA+ (qui correspond à un registre). Puisque le processeur n'est qu'un ensemble de \verb+if+/\verb+else+, \verb+valA+ ne sera renvoyé que si la condition ``pas de registre chargé en source A durant la phase \verb+Decode+'' est fausse.
 
+\subsubsection{Version pipelinée}
 \paragraph{}Nous avons modifié la version pipelinée de l'architecture de la même façon : après avoir supprimé les ``doublons'' \verb+IOPL+, nous avons modifié la phase \verb+Execute+ du processeur (au moment du chargement des sources de l'ALU) de sorte à ce qu'il teste si un registre n'a pas été chargé en tant que source A lors de la phase \verb+Decode+ (c'est-à-dire qu'il teste si \verb+E_srcA+ égale \verb+RNONE+). Le cas échéant, le processeur utilisera \verb+E_valC+ comme source de A de l'ALU ; sinon, il utilisera \verb+E_valA+.
 
 
@@ -84,6 +86,7 @@ Pour éviter des problèmes futurs, nous avons harmonisé le nombre d'octets sur
 
 \paragraph{}La factorisation de \verb+irmovl+ avec \verb+rrmovl+ s'est faite de la même manière que celle de \verb+iopl+ avec \verb+opl+. Nous avons dû à nouveau libérer un {\itshape opcode} (ici, \verb+I_IRMOVL+) puis  éditer le fichier \verb+misc/isa.c+ pour que l'instruction \verb+rrmovl+, normalement codée sur 2 bits, soit désormais codée sur 6 bits, à l'image de l'instruction \verb+irmovl+.
 
+\subsubsection{Versions séquentielle et pipelinée}
 \paragraph{}L'édition des fichiers HCL des versions séquentielle et pipelinée a également été strictement identique à celle effectuée pour la factorisation d'\verb+iopl+ avec \verb+opl+, à la différence près que l'\verb+icode+ testé était bien entendu \verb+rrmovl+ plutôt que \verb+opl+.
 
 
@@ -91,6 +94,7 @@ Pour éviter des problèmes futurs, nous avons harmonisé le nombre d'octets sur
 \subsection{Factorisation de push, pop, call, ret (bonus)}
 \paragraph{}La question bonus de l'exercice 1 nous demander d'étudier les instructions \verb+push+, \verb+pop+, \verb+call+ et \verb+ret+, relativement proches les unes des autres, et de déterminer s'il était intéressant de les factoriser par couples \verb+push/pop | call/ret+, \verb+push/call | pop/ret+ ou encore par quadruplet \verb+push/pop/call/ret+.
 
+\subsubsection{Approche générale}
 \paragraph{}Il nous a, dès le départ, semblé évident que l'option la plus intéressante était la factorisation par quadruplet. Cette dernière permettait en effet de rassembler quatre instructions sous la bannière d'un unique {\itshape opcode}, ce qui aurait alors engendré la libération de 3 {\itshape opcodes}. Néanmoins, la factorisation directe des 4 instructions nous paraissait fastidieuse. C'est pour cette raison que nous avons décidé de procéder en deux temps : nous allions d'abord factoriser par couples, et une fois cette factorisation faite, nous pourrions factoriser par quadruplet.
 
 \paragraph{}Pour déterminer quelle combinaison de couples (\verb+push/pop | call/ret+ ou \verb+push/call | pop/ret+) était la plus intéressante à utiliser, nous avons tout simplement étudié l'architecture séquentielle du processeur et effectué un comptage manuel des occurrences de chaque couple. Il est alors apparu que les couples qui revenaient le plus fréquemment étaient \verb+push/call+ et \verb+pop/ret+. Nous avons conséquemment décidé de factoriser les instructions suivant ce schéma.
@@ -106,6 +110,7 @@ typedef enum { J_POP, J_RET } pop_t;
 \end{quote}
 Dans \verb+misc/isa.c+, nous avons également modifié le nombre d'octets sur lequel étaient codées les instructions. Ainsi, \verb+push+ et \verb+call+ sont passées à 6 octets (initialement codées sur 2 et 5 octets) tandis que \verb+pop+ et \verb+ret+ sont passées à 2 octets (initialement codées sur 2 et 1 octets).
 
+\subsubsection{Version séquentielle}
 \paragraph{}Après avoir défini \verb+J_PUSH, J_CALL, J_POP+ et \verb+J_RET+ dans le fichier de l'architecture séquentielle (à l'aide d'\verb+intsig+), nous avons factorisé les couples comme nous l'avions fait pour les questions précédentes : nous avons commencé par supprimer les ``doublons'' (les \verb+CALL+ étant maintenant confondus avec les \verb+PUSH+, et les \verb+RET+ l'étant avec les \verb+POP+), puis nous avons différencié, lorsque c'était nécessaire, les \verb+CALL+ des \verb+PUSH+ et les \verb+RET+ des \verb+POP+ en nous servant cette fois de l'\verb+ifun+.
 
 \paragraph{}En effet, grâce à nos énumérations, l'\verb+ifun+ pouvait prendre des valeurs différentes, d'après ce que nous avions défini {\itshape via} \verb+intsig+ :
@@ -121,7 +126,10 @@ Ainsi, lorsque nous avions besoin de différencier un \verb+PUSH+ d'un \verb+CAL
 
 \paragraph{}La différenciation des différents opérandes s'est bien entendu faite à l'aide de l'\verb+ifun+, qui pouvait cette fois-ci prendre quatre valeurs différentes (\verb+PUSH_PU, PUSH_CA, PUSH_PO, PUSH_RE+) pour l'\verb+icode PUSHL+.
 
-\paragraph{}Pour l'architecture pipelinée du processeur, nous avons directement factorisé les instructions par quadruplet, nous servant de notre architecture séquentielle comme modèle. Il s'agissait principalement d'adapter le code de la version séquentielle à la version pipelinée, ce qui s'est fait sans difficulté. Nous avons néanmoins dû rajouter un \verb+ifun+ pour l'étage \verb+Decode+ (\verb+D_ifun+) car il n'était pas défini dans le fichier HCL. Après quelques recherches, nous avons pu retrouver la structure définissant les éléments de toutes les phases de l'architecture pipelinée dans le fichier \verb+pipe/stages.h+ et nous nous sommes aperçus qu'un champ pour l'\verb+ifun+ existait déjà sans être pour autant utilisé. Il nous a suffi de le rajouter dans le fichier HCL à l'aide d'un \verb+intsig D_ifun 'if_id_curr->ifun'+.
+\subsubsection{Version pipelinée}
+\paragraph{}Pour l'architecture pipelinée du processeur, nous avons directement factorisé les instructions par quadruplet, nous servant de notre architecture séquentielle comme modèle. Il s'agissait principalement d'adapter le code de la version séquentielle à la version pipelinée, ce qui s'est fait sans difficulté. Nous avons néanmoins dû rajouter un \verb+ifun+ pour l'étage \verb+Decode+ (\verb+D_ifun+) car il n'était pas défini dans le fichier HCL.
+
+\paragraph{}Après quelques recherches, nous avons pu retrouver la structure définissant les éléments de toutes les phases de l'architecture pipelinée dans le fichier \verb+pipe/stages.h+ et nous nous sommes aperçus qu'un champ pour l'\verb+ifun+ existait déjà sans être pour autant utilisé. Il nous a suffi de le rajouter dans le fichier HCL à l'aide d'un \verb+intsig D_ifun 'if_id_curr->ifun'+.
 
 
 
@@ -143,13 +151,68 @@ Ainsi, lorsque nous avions besoin de différencier un \verb+PUSH+ d'un \verb+CAL
 
 \paragraph{}Il a ensuite fallu ajouter aux fichiers \verb+seq/ssim.c+ et \verb+pipe/psim.c+ un prototype de fonction qui renvoie la valeur de l'\verb+ifun+ au cycle suivant. Puis, nous avons géré, dans le code des fonctions \verb+sim_step+(pour la version séquentielle) et \verb+do_if_stage+ (pour la version pipelinée), le cas où il ne fallait pas passer à l'instruction suivante mais à l'\verb+ifun+ suivant (c'est-à-dire le cas où \verb+gen_instr_next_ifun() != 1+).
 
-\paragraph{}Enfin, il a fallu s'occuper de la mise à jour du PC. Cette dernière ne devait s'effectuer que si le prochain \verb+ifun+ était égal à -1, c'est-à-dire uniquement si l'instruction en cours est terminée et qu'il faut passer à la suivante. 
+\paragraph{}Enfin, il a fallu s'occuper de la mise à jour du PC. Cette dernière ne devait s'effectuer que si le prochain \verb+ifun+ était égal à -1, c'est-à-dire uniquement si l'instruction en cours était terminée et qu'il fallait passer à la suivante. 
 
 
 \section{Exercice 3}
+\paragraph{}Après avoir rajouté le support d'instructions sur plusieurs cycles aux versions séquentielle et pipelinée du processeur, cet exercice proposait de leur ajouter de nouvelles instructions, et plus particulièrement les instructions \verb+enter+ (déjà présentée précédemment) et \verb+mul+, qui permet d'effectueru une multiplication à partir de deux registres passés en paramètres.
+
 \subsection{Instruction enter}
+\paragraph{}Avant toute chose, il nous a fallu réserver un {\itshape opcode} (parmi ceux fraîchement libérés) pour l'instruction \verb+enter+. Nous avons donc renommé, dans \verb+misc/isa.h+, un {\itshape opcode} \verb+I_FREE+ en \verb+I_ENTER+. Nous avons ensuite suivi les instructions du sujet du projet, qui nous ont conduits à ajouter \verb+enter+ à la règle \verb+Instr+ (\verb+misc/yas-grammar.lex+), puis les instructions \verb+enter+ et \verb+enter1+, identiques en tout point hormis la valeur de leur \verb+ifun+, au tableau \verb+instruction_set+ (\verb+misc/isa.c+).
+
+\paragraph{}Ainsi, pour l'\verb+icode ENTER+, nous avions deux \verb+ifun+ possibles :
+\begin{itemize}
+\item \verb+ifun == 0+ : le processeur injecte une instruction \verb+pushl %ebp+.
+  \item \verb+ifun == 1+ : le processeur injecte une instruction \verb+rrmovl %esp, %ebp+.
+\end{itemize}
+
+\subsubsection{Version séquentielle}
+\paragraph{}Nous avons commencé par rajouter dans la version séquentielle la gestion de l'\verb+ifun : icode == ENTER && ifun == 0 : 1;+. Cette ligne indique que si l'\verb+ifun+ est à 0, une instruction \verb+enter1+ sera injectée par le processeur pour un \verb+ifun+ égal à 1. Comme nous avons indiqué, durant l'exercice 2 que, que la valeur de l'\verb+ifun+ venant après le 1 est par défaut -1 (qui signe la fin de l'instruction), nous n'avons pas besoin de rajouter de cas supplémentaires pour gérer l'\verb+ifun+.
+
+\paragraph{}Par la suite, nous avons procédé comme si nous voulions, dans un premier temps, ajouter l'instruction \verb+PUSHL+ : nous avons rajouté une instruction d'\verb+icode ENTER+ et d'\verb+ifun 0+ aux endroits nécessaires, en veillant simplement à ce que le registre utilisé comme source A soit le registre \verb+%ebp (REBP)+, et que le registre utilisé pour \verb+destE+ soit \verb+%esp (RESP)+.
+
+\paragraph{}Puis, nous avons fait de même pour la deuxième partie de l'instruction, c'est-à-dire la partie qui effectue un \verb+rrmovl %esp, %ebp+. Nous avons rajouté une instruction d'\verb+icode ENTER+ et d'\verb+ifun 1+ aux endroits permettant de faire un \verb+RRMOVL+, en tâchant de prendre les registres \verb+%ebp (REBP)+ et \verb+%esp (RESP)+ en sources A et B, et \verb+%ebp (REBP)+ en \verb+destE+.
+
+\subsubsection{Version pipelinée}
+\paragraph{}Nous avons procédé de la même manière pour ajouter l'instruction \verb+ENTER+ à l'architecture pipelinée du processeur. Comme nous avions fait la question bonus de l'exercice 1 avant cet exercice, nous avions déjà rajouté le \verb+D_ifun+. L'implémentation d'\verb+enter+ dans la version pipelinée s'est donc vraiment faite sans difficulté.
+
+
 
 \subsection{Instruction mul}
+\paragraph{}L'instruction \verb+mul+ permet d'effectuer le produit de deux registres passés en paramètres et stocke le résultat dans le registre \verb+%eax+ après l'avoir initialisé. Elle utilise l'algorithme d'additions successives, ce qui implique que les registres passés en paramètres doivent contenir des valeurs positives.  
+
+\subsubsection{Approche générale}
+\paragraph{}Le sujet du projet nous indiquait qu'il fallait nous servir du \verb+CC+ (Condition Codes) pour indiquer au processeur la fin de l'instruction, c'est-à-dire le moment auquel il faut sortir de la boucle (et donc passer l'\verb+ifun+ à -1). Le reste de l'implémentation de l'instruction restait libre : nous avons donc pu choisir sur combien de niveaux nous souhaitions implémenter \verb+mul+.
+
+\paragraph{}Nous avons décidé que nous utiliserions trois valeurs d'\verb+ifun+ :
+\begin{itemize}
+\item \verb+ifun == 0+ : le registre \verb+%eax+ est initialisé à 0.
+\item \verb+ifun == 1+ : on soustrait 1 au registre ``compteur'' (passé en second paramètre).
+\item \verb+ifun == 2+ : on ajoute à \verb+%eax+ la valeur du premier registre passé en paramètres.
+\end{itemize}
+Une fois cela établi, nous avons pu attribuer à l'instruction un {\itshape opcode} et rajouter l'instruction à la règle \verb+Instr+, puis le triplet \verb+mul, mul1, mul2+ au tableau d'instructions (seule la valeur de l'\verb+ifun+ variait d'une instruction \verb+mul*+ à l'autre).
+
+\paragraph{}Nous avons également décidé de procéder à l'implémentation de \verb+mul+ étape par étape.
+\begin{enumerate}
+\item Initialisation du registre \verb+%eax+ (cas \verb+icode == MUL && ifun == 0+).
+\item Soustraction (-1) au registre passé en second paramètre (cas \verb+icode+
+  \\\verb+== MUL && ifun == 1+).
+\item Ajout du registre passé en première paramètre à \verb+%eax+ (cas \verb+icode ==+
+  \\\verb+MUL && ifun == 2+) sans condition d'arrêt (c'est-à-dire que même si la multiplication est terminée, on ne sort pas de l'instruction \verb+mul+).
+\item Ajout de la condition d'arrêt (cas \verb+icode == MUL && ifun == 2 &&+
+  \\\verb+cc == 2+).
+\end{enumerate}
+
+\subsubsection{Version séquentielle}
+\paragraph{}Après avoir défini, avec des \verb+intsig+, \verb+MUL, REAX+ et \verb+cc+, nous avons ajouté les différents cas possibles concernant l'\verb+ifun+, à savoir :
+\begin{quote}
+\begin{verbatim}
+icode == MUL && ifun == 0 : 1;
+icode == MUL && ifun == 1 : 2;
+icode == MUL && ifun == 2 && cc == 2 : -1;
+icode == MUL : 1;
+\end{verbatim}
+\end{quote}
 
 \subsection{(bonus)}
 \section*{Conclusion}
