@@ -96,6 +96,11 @@ instr_t instruction_set[] =
     /* instruction lods/stos */
     {"lods",   HPACK(I_LODS, J_LODS), 1, NO_ARG, 0, 0, NO_ARG, 0, 0},
     {"stos",   HPACK(I_LODS, J_STOS), 1, NO_ARG, 0, 0, NO_ARG, 0, 0},
+    {"movs",   HPACK(I_MOVS, 0), 1, NO_ARG, 0, 0, NO_ARG, 0, 0},
+    {"movs1",  HPACK(I_MOVS, 1), 1, NO_ARG, 0, 0, NO_ARG, 0, 0},
+    {"movs2",  HPACK(I_MOVS, 2), 1, NO_ARG, 0, 0, NO_ARG, 0, 0},
+    {"movs3",  HPACK(I_MOVS, 3), 1, NO_ARG, 0, 0, NO_ARG, 0, 0},
+    {"movs4",  HPACK(I_MOVS, 4), 1, NO_ARG, 0, 0, NO_ARG, 0, 0},
     /* For allocation instructions, arg1hi indicates number of bytes */
     {".byte",  0x00, 1, I_ARG, 0, 1, NO_ARG, 0, 0 },
     {".word",  0x00, 2, I_ARG, 0, 2, NO_ARG, 0, 0 },
