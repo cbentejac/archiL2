@@ -154,6 +154,16 @@ Ainsi, lorsque nous avions besoin de différencier un \verb+PUSH+ d'un \verb+CAL
 \paragraph{}Enfin, il a fallu s'occuper de la mise à jour du PC. Cette dernière ne devait s'effectuer que si le prochain \verb+ifun+ était égal à -1, c'est-à-dire uniquement si l'instruction en cours était terminée et qu'il fallait passer à la suivante. 
 
 
+\subsubsection{Tests}
+\paragraph{}Avant de passer à l'exercice 3, il nous a semblé important d'effectuer quelques tests afin d'être certains que nous n'avions pas commis d'erreurs : le cas échéant, l'intégralité de l'exercice 3 n'aurait pu fonctionner.
+
+\paragraph{}Nous avons donc modifié, dans le \verb+instr_next_ifun+ de \verb+seq/seq-std.hcl+, les instructions factorisées \verb+PUSH/POP/CALL/RET+ de sorte à ce qu'un \verb+pushl registre+ soit immédiatement et automatiquement suivi d'un \verb+popl registre+ (par exemple, \verb+pushl %eax+ suivi de \verb+popl %eax+). Le comportement du simulateur nous semblant normal, nous avons pu passer à l'exercice suivant.
+
+\paragraph{}Nous avons vérifié plus tard, à l'aide de l'instruction \verb+enter+ de l'exercice 3, que le support des instructions sur plusieurs cycles était bien effectif. Le comportement du simulateur avec ces tests nous a confortés dans cette idée.
+
+
+
+
 \section{Exercice 3}
 \paragraph{}Après avoir rajouté le support d'instructions sur plusieurs cycles aux versions séquentielle et pipelinée du processeur, cet exercice proposait de leur ajouter de nouvelles instructions, et plus particulièrement les instructions \verb+enter+ (déjà présentée précédemment) et \verb+mul+, qui permet d'effectueru une multiplication à partir de deux registres passés en paramètres.
 
@@ -175,7 +185,6 @@ Ainsi, lorsque nous avions besoin de différencier un \verb+PUSH+ d'un \verb+CAL
 
 \subsubsection{Version pipelinée}
 \paragraph{}Nous avons procédé de la même manière pour ajouter l'instruction \verb+ENTER+ à l'architecture pipelinée du processeur. Comme nous avions fait la question bonus de l'exercice 1 avant cet exercice, nous avions déjà rajouté le \verb+D_ifun+. L'implémentation d'\verb+enter+ dans la version pipelinée s'est donc vraiment faite sans difficulté.
-
 
 
 \subsection{Instruction mul}
