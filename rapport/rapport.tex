@@ -190,7 +190,7 @@ Ainsi, lorsque nous avions besoin de différencier un \verb+PUSH+ d'un \verb+CAL
 \item \verb+ifun == 1+ : on soustrait 1 au registre ``compteur'' (passé en second paramètre).
 \item \verb+ifun == 2+ : on ajoute à \verb+%eax+ la valeur du premier registre passé en paramètres.
 \end{itemize}
-Une fois cela établi, nous avons pu attribuer à l'instruction un {\itshape opcode} et rajouter l'instruction à la règle \verb+Instr+, puis le triplet \verb+mul, mul1, mul2+ au tableau d'instructions (seule la valeur de l'\verb+ifun+ variait d'une instruction \verb+mul*+ à l'autre).
+Une fois cela établi, nous avons pu attribuer à l'instruction un {\itshape opcode} et la rajouter à la règle \verb+Instr+. Puis, nous avons ajouté le triplet \verb+mul, mul1, mul2+ au tableau d'instructions (seule la valeur de l'\verb+ifun+ variait d'une instruction \verb+mul*+ à l'autre).
 
 \paragraph{}Nous avons également décidé de procéder à l'implémentation de \verb+mul+ étape par étape.
 \begin{enumerate}
@@ -213,8 +213,55 @@ icode == MUL && ifun == 2 && cc == 2 : -1;
 icode == MUL : 1;
 \end{verbatim}
 \end{quote}
+Nous avons ensuite implémenté l'instruction, étape par étape.
 
-\subsection{(bonus)}
+\paragraph{}Ni l'étage \verb+Fetch+, ni l'étage \verb+Decode+ ne nous a pas posé de problèmes. En effet, une fois les différents comportements attribués aux différents \verb+ifun+, il n'était pas compliqué d'implémenter l'instruction, encore moins en procédant étape par étape comme nous l'avons fait.
+
+\paragraph{}La phase \verb+Execute+ fut celle qui nous posa problème. Gérer les ALU ne fut pas plus difficile que ne l'avaient été les autres phases. En revanche, la mise à jour de \verb+cc+ fut source de bogues qui ne se manifestèrent que lorsque nous tentions de mettre en place la condition d'arrêt de la boucle. Initialement, nous avions écrit :
+\begin{quote}
+\begin{verbatim}
+bool set_cc = icode in { OPL, MUL };
+\end{verbatim}
+\end{quote}
+Or, c'est précisément cette ligne qui provoquait les échecs de nos tests : à chaque fois que la multiplication arrivait à son terme, le simulateur passait à l'instruction suivante mais continuait à exécuter des \verb+mul1+ et \verb+mul2+, et calculait des valeurs improbables dans \verb+%eax+. Même un inoffensif \verb+nop+ adoptait ce comportement.
+
+\paragraph{}Après des recherches infructueuses sur l'origine de ce problème, nous avons tâtonné jusqu'à tenter :
+\begin{quote}
+\begin{verbatim}
+bool set_cc = icode in { OPL } ||
+              icode == MUL && ifun in { 0, 1 };
+\end{verbatim}
+\end{quote}
+Cette version-ci de la fonction a parfaitement fonctionné. Peut-être était-ce dû au fait que le processeur ne puisse pas lire et écrire la valeur de \verb+cc+ en même temps ?
+
+\subsubsection{Version pipelinée}
+\paragraph{}Pour la version pipelinée, nous avons, comme d'habitude, procédé de la même façon que pour la version séquentielle. Nous avons simplement veillé à inclure le \verb+M_icode+ dans notre condition d'arrêt, lors de la gestion des changements de valeur de l'\verb+ifun+. Nous n'avons ainsi pas eu besoin d'injecter de bulles et avons simplement écrit les conditions suivantes :
+\begin{quote}
+  \begin{verbatim}
+f_icode == MUL && f_ifun == 0 : 1;
+	f_icode == MUL && f_ifun == 1 : 2;
+	f_icode == MUL && f_ifun == 2 && (M_icode == MUL) && cc == 2 : -1;
+	E_icode == MUL : 1;
+\end{verbatim}
+\end{quote}
+
+
+\subsection{Instructions lods/stos/movs (bonus)}
+
+
+
+
 \section*{Conclusion}
+\paragraph{}Ce projet s'est révélé être une véritable extension des Travaux Pratiques effectués en présentiel. En effet, le projet nous proposait de factoriser des instructions d'une part, et d'en implémenter de nouvelles, plus complexes car sur plusieurs cycles, d'autre part. Ce sont là deux choses que nous n'avions pas encore eu l'occasion de faire lors des TP et qui ont pourtant leur importance, puisqu'elles permettent d'étendre largement le processeur y86 et, par extension, de créer avec plus de facilité des programmes complexes.
+
+\paragraph{}Cela a également été l'occasion pour nous de lever le voile sur certains points du fonctionnement du processeur qui nous semblaient peut-être, à l'issue des TP, encore obscurs : l'accomplissement des tâches du projet, plus complexes que celles des TP, nécessitait une compréhension pointue du processeur et de ce que nous modifiions, ce qui nous a conduits à nous pencher plus particulièrement sur certains aspects qui nous sembler toujours un peu abstraits.
+
+\paragraph{}Le bilan de ce projet est, pour nous, positif. Nous avons su réaliser l'intégralité des questions obligatoires dans le temps imparti et avons également pu faire une majorité de questions bonus. Outre le travail effectué sur le processeur y86 lui-même, ce projet a aussi été l'occasion de travailler en binôme, ce qui nous a conduit à utiliser des outils collaboratifs (GitHub dans notre cas) et à gérer la répartition du travail parmi les membres du binôme.
+
+\paragraph{}Si le projet a été intégralement réalisé à quatre mains jusqu'à la fin de l'implémentation de \verb+mul+, nous avons dû, par la suite et dans un souci de gain de temps, nous séparer. Ainsi, les questions bonus de l'exercice 3 ont été réalisées en parallèle de la rédaction du rapport.
+
+\paragraph{}L'objectif du projet était d'étendre le processeur y86 de façon à pouvoir lui faire exécuter des instructions sur plusieurs cycles. Nous considérons avoir atteint cet objectif. Qui plus est, le projet s'est déroulé dans une très bonne ambiance et, mieux encore, nous avons compris tout ce que nous avons fait. Ce projet est donc pour nous, tant sur le plan scolaire que le plan personnel, une réussite.
+
+
 
 \end{document}
