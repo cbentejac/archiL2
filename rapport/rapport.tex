@@ -23,7 +23,7 @@
 % Chargement page de garde
 \begin{figure}
   \includegraphics{logo_ub.png}
-  \end{figure}
+\end{figure}
 \maketitle
 
 % Permet de sauter 5 lignes
@@ -54,7 +54,6 @@ A titre d'exemple, on peut parler de l'instruction du processeur x86 \verb+enter
 \paragraph{}Enfin, le troisième exercice nous demandait d'ajouter plusieurs instructions à l'architecture, telle que l'instruction \verb+enter+ précitée. Cet exercice étant dans la continuité du précédent, les instructions à ajouter étaient précisément des instructions s'exécutant sur plusieurs cycles.
 
 \paragraph{}Ce rapport est le compte-rendu du travail sur le projet que notre binôme, constitué de Paul Beziau et de Candice Bentéjac (groupe IN400 A2), a effectué.
-
 
 
 
@@ -107,15 +106,44 @@ typedef enum { J_POP, J_RET } pop_t;
 \end{quote}
 Dans \verb+misc/isa.c+, nous avons également modifié le nombre d'octets sur lequel étaient codées les instructions. Ainsi, \verb+push+ et \verb+call+ sont passées à 6 octets (initialement codées sur 2 et 5 octets) tandis que \verb+pop+ et \verb+ret+ sont passées à 2 octets (initialement codées sur 2 et 1 octets).
 
-\paragraph{}IMPLEMENTATION SEQ
+\paragraph{}Après avoir défini \verb+J_PUSH, J_CALL, J_POP+ et \verb+J_RET+ dans le fichier de l'architecture séquentielle (à l'aide d'\verb+intsig+), nous avons factorisé les couples comme nous l'avions fait pour les questions précédentes : nous avons commencé par supprimer les ``doublons'' (les \verb+CALL+ étant maintenant confondus avec les \verb+PUSH+, et les \verb+RET+ l'étant avec les \verb+POP+), puis nous avons différencié, lorsque c'était nécessaire, les \verb+CALL+ des \verb+PUSH+ et les \verb+RET+ des \verb+POP+ en nous servant cette fois de l'\verb+ifun+.
 
-\paragraph{}IMPLEMENTATION QUADRUPLET (ENUM + TAB A 6)
+\paragraph{}En effet, grâce à nos énumérations, l'\verb+ifun+ pouvait prendre des valeurs différentes, d'après ce que nous avions défini {\itshape via} \verb+intsig+ :
+\begin{itemize}
+\item Si l'\verb+icode+ était égal à \verb+PUSHL+ et qu'il s'agissait bien d'un \verb+PUSH (J_PUSH)+, alors l'\verb+ifun+ était égal à \verb+PUSH_S+.
+\item Si l'\verb+icode+ était égal à \verb+PUSHL+ et qu'il s'agissait d'un \verb+CALL (J_CALL)+, alors l'\verb+ifun+ était égal à \verb+PUSH_F+.
+\item Si l'\verb+icode+ était égal à \verb+POPL+ et qu'il s'agissait bien d'un \verb+POP (J_POP)+, alors l'\verb+ifun+ était égal à \verb+POP_S+.
+  \item Si l'\verb+icode+ était égal à \verb+PUSHL+ et qu'il s'agissait d'un \verb+RET (J_RET)+, alors l'\verb+ifun+ était égal à \verb+POP_F+.
+\end{itemize} 
+Ainsi, lorsque nous avions besoin de différencier un \verb+PUSH+ d'un \verb+CALL+, nous testions si son \verb+ifun+ était égal à \verb+PUSH_S+ ou à \verb+PUSH_F+. Nous procédions de la même manière pour \verb+POP+ et \verb+RET+.
 
-\paragraph{}IMPLEMENTATION PIPE
+\paragraph{}Une fois les couples factorisés dans l'architecture séquentielle du processeur, nous sommes passés à la factorisation par quadruplet. Nous avons alors rassemblé nos deux énumérations en un seule et augmenté le nombre d'octets sur lequel étaient codés \verb+POP+ et \verb+RET+ (ils sont passés de 2 à 6 octets), puis nous avons libéré l'{\itshape opcode} \verb+I_POPL+ (décidant donc de factoriser toutes les instructions à l'aide de l'{\itshape opcode} \verb+I_PUSHL+).
+
+\paragraph{}La différenciation des différents opérandes s'est bien entendu faite à l'aide de l'\verb+ifun+, qui pouvait cette fois-ci prendre quatre valeurs différentes (\verb+PUSH_PU, PUSH_CA, PUSH_PO, PUSH_RE+) pour l'\verb+icode PUSHL+.
+
+\paragraph{}Pour l'architecture pipelinée du processeur, nous avons directement factorisé les instructions par quadruplet, nous servant de notre architecture séquentielle comme modèle. Il s'agissait principalement d'adapter le code de la version séquentielle à la version pipelinée, ce qui s'est fait sans difficulté. Nous avons néanmoins dû rajouter un \verb+ifun+ pour l'étage \verb+Decode+ (\verb+D_ifun+) car il n'était pas défini dans le fichier HCL. Après quelques recherches, nous avons pu retrouver la structure définissant les éléments de toutes les phases de l'architecture pipelinée dans le fichier \verb+pipe/stages.h+ et nous nous sommes aperçus qu'un champ pour l'\verb+ifun+ existait déjà sans être pour autant utilisé. Il nous a suffi de le rajouter dans le fichier HCL à l'aide d'un \verb+intsig D_ifun 'if_id_curr->ifun'+.
+
 
 
 \section{Exercice 2}
+\paragraph{}Le but de ce deuxième exercice était de permettre au processeur de supporter les instructions se déroulant sur plusieurs cycles. Une instruction sur plusieurs cycles est une instruction qui est équivalente à une suite de plusieurs instructions. Dans l'exemple donné dans le sujet, l'instruction \verb+enter+ est équivalente à la suite d'instructions :
+\begin{quote}
+\begin{verbatim}
+  pushl %ebp
+  rrmovl %esp, %ebp
+\end{verbatim}
+\end{quote}
 
+\paragraph{}Le principe de l'instruction sur plusieurs cycles est intimement lié à l'\verb+ifun+ puisqu'il s'agit de permettre au processeur d'injecter, de lui-même, des instructions aux comportement différents selon la valeur de l'\verb+ifun+, qui est croissante, à partir d'un unique \verb+icode+. Ainsi, il devient possible d'ajouter au processeur des instructions sur plusieurs cycles qui faciliteront grandement l'écriture de futurs programmes (il devient par exemple plus simple d'écrire un programme utilisant le cadre de pile à l'aide des instructions \verb+enter+ et \verb+leave+ qu'en faisant les \verb+pushl, popl+ et \verb+rrmovl+ adéquats).
+
+\paragraph{}Cet exercice était extrêmement guidé : toutes les modifications à effectuer étaient données pas à pas. La difficulté de l'exercice ne résidait pas donc pas dans sa réalisation, mais bel et bien dans sa compréhension. De fait, bien comprendre les modifications faites durant cet exercice permettait de mieux appréhender l'exercice suivant.
+
+\subsection{Versions séquentielle et pipelinée}
+\paragraph{}Considérant que l'\verb+ifun+ allait pouvoir plusieurs valeurs pour la même instruction, il a d'abord fallu indiquer, dans les fichiers \verb+seq/seq-std.hcl+ et \verb+pipe/pipe-std.hcl+, quelle serait par défaut la valeur de l'\verb+ifun+ pour laquelle le processeur comprendrait que l'instruction en cours est finie et qu'il faut passer à la suivante. Ici, le processeur passe à l'instruction suivante après que l'\verb+ifun+ ait été égal à 1.
+
+\paragraph{}Il a ensuite fallu ajouter aux fichiers \verb+seq/ssim.c+ et \verb+pipe/psim.c+ un prototype de fonction qui renvoie la valeur de l'\verb+ifun+ au cycle suivant. Puis, nous avons géré, dans le code des fonctions \verb+sim_step+(pour la version séquentielle) et \verb+do_if_stage+ (pour la version pipelinée), le cas où il ne fallait pas passer à l'instruction suivante mais à l'\verb+ifun+ suivant (c'est-à-dire le cas où \verb+gen_instr_next_ifun() != 1+).
+
+\paragraph{}Enfin, il a fallu s'occuper de la mise à jour du PC. Cette dernière ne devait s'effectuer que si le prochain \verb+ifun+ était égal à -1, c'est-à-dire uniquement si l'instruction en cours est terminée et qu'il faut passer à la suivante. 
 
 
 \section{Exercice 3}
@@ -123,7 +151,7 @@ Dans \verb+misc/isa.c+, nous avons également modifié le nombre d'octets sur le
 
 \subsection{Instruction mul}
 
-
+\subsection{(bonus)}
 \section*{Conclusion}
 
 \end{document}
