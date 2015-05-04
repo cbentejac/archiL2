@@ -258,13 +258,13 @@ f_icode == MUL && f_ifun == 0 : 1;
 
 
 \subsection{Instructions lods/stos/movs (bonus)}
-\paragraph{}L'instruction \verb+lods+ permait de lire en mémoire l'adresse d'\verb+%esi+, puis de stocker ce résultat dans \verb+%eax+ avant d'ajouter 4 au pointeur \verb+%esi+. L'instruction \verb+stos+, quant à elle, écrit le contenu du registre \verb+%eax+ à l'adresse \verb+%edi+, puis ajoute 4 au pointeur \verb+%edi+. Enfin, \verb+movs+ lit en mémoire l'adresse \verb+%esi+, écrit la valeur en mémoire à l'adresse \verb+%edi+ avant d'ajouter 4 à \verb+%esi+ et \verb+%edi+ ; le registre \verb+%eax+ sert alors d'intermédiaire.
+\paragraph{}L'instruction \verb+lods+ permait de lire en mémoire l'adresse du registre \verb+%esi+, puis de stocker ce résultat dans \verb+%eax+ avant d'ajouter 4 au pointeur \verb+%esi+. L'instruction \verb+stos+, quant à elle, écrit le contenu du registre \verb+%eax+ à l'adresse \verb+%edi+, puis ajoute 4 au pointeur \verb+%edi+. Enfin, \verb+movs+ lit en mémoire l'adresse \verb+%esi+, écrit la valeur en mémoire à l'adresse \verb+%edi+ avant d'ajouter 4 à \verb+%esi+ et \verb+%edi+ ; le registre \verb+%eax+ sert alors d'intermédiaire.
 
 
 \subsubsection{Instructions lods et stos}
 \paragraph{}Les instructions \verb+lods+ et \verb+stos+ étant relativement semblables, nous avons décidé de les implémenter en même temps et des les factoriser l'une avec l'autre. A l'image de ce que nous avions fait pour factoriser les instructions \verb+push/pop/call/ret+, nous avons donc rajouté une énumération dans \verb+misc/isa.h+ (de sorte à pouvoir différencier un \verb+lods+ d'un \verb+stos+ à l'aide de l'\verb+ifun+) et renommé un {\itshape opcode} que nous avions libéré en \verb+I_LODS+.
 
-\paragraph{}Dans les fichiers HCL, il nous a fallu rajouter les définitions des registres \verb+%esi (REG_ESI ; intsig RESI 'REG_ESI')+ et \verb+%edi (REG_EDI ; intsig REDI 'REG_EDI')+. L'implémentation de ces deux instructions dans la version séquentielle s'est faite aisément puisqu'une fois les instructions ajoutées au tableau d'\verb+misc/isa.c+, il n'y avait aucune difficulté particulière. L'implémentation dans la version pipelinée n'a pas été foncièrement plus compliquée : jouer avec l'\verb+ifun+ était suffisant.
+\paragraph{}Dans les fichiers HCL, il nous a fallu rajouter les définitions des registres \verb+%esi (REG_ESI ; intsig RESI 'REG_ESI')+ et \verb+%edi (REG_EDI+\\\verb+; intsig REDI 'REG_EDI')+. L'implémentation de ces deux instructions dans la version séquentielle s'est faite aisément puisqu'une fois les instructions ajoutées au tableau d'\verb+misc/isa.c+, il n'y avait aucune difficulté particulière. L'implémentation dans la version pipelinée n'a pas été foncièrement plus compliquée : jouer avec l'\verb+ifun+ était suffisant.
 
 
 
@@ -282,17 +282,17 @@ f_icode == MUL && f_ifun == 0 : 1;
 \item Pour un \verb+ifun == 0+, ce sera \verb+%esp (RESP)+ (cas du \verb+pushl %eax+).
 \item Pour un \verb+ifun == 1+, ce sera \verb+%esi (RESI)+ (cas du \verb+lods+).
 \item Pour un \verb+ifun == 2+, ce sera \verb+%edi (REDI)+ (cas du \verb+stos+).
+  \item Pour un \verb+ifun == 3+, ce sera \verb+%esp (RESP)+ (cas du \verb+popl %eax+).
 \end{itemize}
 A chaque fois, la source A sera modifiée en fonction de la valeur de l'\verb+ifun+.
 
 \paragraph{}Une fois cela établi, le reste de l'implémentation de \verb+movs+ dans la version séquentielle est simple : il suffit de se calquer, selon l'\verb+ifun+, sur la façon dont les instructions \verb+pushl, lods, stos+ et \verb+popl+ sont respectivement implémentées.
 
-\paragraph{}L'implémentation de l'instruction dans la version pipelinée s'est avérée plus compliquée. Nous avons été obligés d'utiliser deux instructions plutôt qu'une pour faire le \verb+stos+, ce qui induit la présence d'un \verb+ifun+ supplémentaire (pour un total de 5 \verb+ifun+).
+\paragraph{Version pipelinée}L'implémentation de l'instruction dans la version pipelinée s'est avérée plus compliquée. Nous avons été obligés d'utiliser deux instructions plutôt qu'une pour faire le \verb+stos+, ce qui induit la présence d'un \verb+ifun+ supplémentaire (pour un total de 5 \verb+ifun+).
 
-\paragraph{Version pipelinée}Dans la version pipelinée, on ne peut pas avoir accès, à l'étage \verb+Memory+, à la source B. Ainsi, lorsque le processeur injecte une instruction \verb+pushl+ ou \verb+stos+ (c'est-à-dire quand on écrit en mémoire), il faut obligatoirement passer \verb+%eax+ en source A afin de pouvoir écrire dedans lors de la phase \verb+Memory+. Les registres \verb+%esp, %esi+ et \verb+%edi+ sont dans ces cas-là utilisés en tant que source B (la valeur de l'\verb+ifun+ déterminant, bien entendu, lequel de ces registres est utilisé) ; sinon, ils sont passés en source A ainsi qu'en source B. Nous avons également dû veiller à ce que le simulateur n'injecte pas de bulles non souhaitées.
+\paragraph{}Dans la version pipelinée, on ne peut pas avoir accès, à l'étage \verb+Memory+, à la source B. Ainsi, lorsque le processeur injecte une instruction \verb+pushl+ ou \verb+stos+ (c'est-à-dire quand on écrit en mémoire), il faut obligatoirement passer \verb+%eax+ en source A afin de pouvoir écrire sa valeur lors de la phase \verb+Memory+. Les registres \verb+%esp, %esi+ et \verb+%edi+ sont dans ces cas-là utilisés en tant que source B (la valeur de l'\verb+ifun+ déterminant, bien entendu, lequel de ces registres est utilisé) ; sinon, ils sont passés en source A ainsi qu'en source B. Nous avons également dû traiter les cas où le simulateur injectait des bulles selon les instructions.
 
 \paragraph{}Ces paramètres pris en considération, le reste de l'implémentation en version pipelinée s'est relativement bien déroulé.
-
 
 
 
