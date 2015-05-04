@@ -1,0 +1,29 @@
+main :
+	irmovl 0,%eax
+	rmmovl %eax,stack
+	
+	irmovl t1,%esi
+	irmovl t2,%edi
+	irmovl stack, %esp
+	pushl %edi
+	irmovl 675, %eax
+	movs
+	movs
+	mrmovl 0x54,%edx
+	popl %ecx
+	halt
+
+
+
+	
+	.align 4
+t1:
+	.long 3
+	.long 8
+
+t2:
+	.long 90
+	.long 47
+
+	.pos 0x200
+stack:	
