@@ -49,7 +49,7 @@ Il nous fallait alors libérer plusieurs de ces {\itshape opcodes} afin de pouvo
 
 \paragraph{}Le deuxième exercice avait pour but de nous faire modifier l'architecture du processeur afin que cette dernière soit capable de supporter des instructions s'exécutant sur plusieurs cycles, c'est-à-dire des instructions qui sont équivalentes à des enchaînements de plusieurs ``sous-instructions''.
 
-A titre d'exemple, on peut parler de l'instruction du processeur x86 \verb+enter+ (décrite dans le sujet du projet) qui est équivalente à \verb+push %ebp+ suivi de \verb+rrmovl+\\ \verb+%esp,%ebp+.
+A titre d'exemple, on peut parler de l'instruction du processeur x86 \verb+enter+ (décrite dans le sujet du projet) qui est équivalente à l'instruction \verb+pushl %ebp+ suivie de \verb+rrmovl %esp,%ebp+.
 
 \paragraph{}Enfin, le troisième exercice nous demandait d'ajouter plusieurs instructions à l'architecture, telle que l'instruction \verb+enter+ précitée. Cet exercice étant dans la continuité du précédent, les instructions à ajouter étaient précisément des instructions s'exécutant sur plusieurs cycles.
 
@@ -58,23 +58,23 @@ A titre d'exemple, on peut parler de l'instruction du processeur x86 \verb+enter
 
 
 \section{Exercice 1 : De la place dans les opcodes}
-\paragraph{}Le but de l'exercice était de libérer des {\itshape opcodes}, plus particulièrement les {\itshape opcodes} \verb+I_ALUI+ et \verb+I_IRMOVL+, en factorisant les instructions qui en dépendaient avec des instructions similaires qui dépendaient d'autres {\itshape opcodes}.
+\paragraph{}Le but de l'exercice était de libérer des {\itshape opcodes}, plus particulièrement les {\itshape opcodes} \verb+I_ALUI+ et \verb+I_IRMOVL+, en factorisant les instructions qui en dépendaient avec des instructions similaires qui dépendaient, quant à elles, d'autres {\itshape opcodes}.
 
 \subsection{Factorisation de iaddl etc. avec addl etc.}
 \paragraph{}Dans un premier temps, il nous a été demandé de libérer l'{\itshape opcode} \verb+I_ALUI+ en factorisant les instructions l'utilisant avec celles utilisant l'{\itshape opcode} \verb+I_OPL+.
 
 \paragraph{}Nous avons commencé par supprimer l'{\itshape opcode} \verb+I_ALUI+ comme cela était indiqué dans le sujet du projet. Les instructions utilisant auparavant l'{\itshape opcode} \verb+I_ALUI+ (et par extension, l'\verb+icode IOPL+) étant désormais confondues avec celles dépendant de l'{\itshape opcode} \verb+I_ALU+ (\verb+icode OPL+), il nous fallait alors les distinguer.
 
-\paragraph{}Avant même de modifier les versions séquentielle et pipelinée de l'architecture, nous avons créé un fichier de test qui effectuait dans un premier temps un \verb+addl+ puis un \verb+iaddl+. L'exécuter avant d'effectuer toute modification de l'architecture via les fichiers HCL nous a permis de remarquer que les instructions de type \verb+iopl+ étaient codées sur un nombre d'octects différent de celui sur lequel étaient codées les instructions de type \verb+opl+ (6 octects pour les \verb+iopl+ contre seulement 2 pour les \verb+opl+).
+\paragraph{}Avant même de modifier les versions séquentielle et pipelinée de l'architecture, nous avons créé un fichier de test qui effectuait dans un premier temps un \verb+addl+ puis un \verb+iaddl+. L'exécuter avant d'effectuer toute modification de l'architecture {\itshape via} les fichiers HCL nous a permis de remarquer que les instructions de type \verb+iopl+ étaient codées sur un nombre d'octects différent de celui sur lequel étaient codées les instructions de type \verb+opl+ (6 octects pour les \verb+iopl+ contre seulement 2 pour les \verb+opl+).
 
-Pour éviter des problèmes futurs, nous avons harmonisé le nombre d'octets sur lequel étaient codés les deux types d'instructions en passant celui des \verb+opl+ à 2 (pour ce faire, nous avons directement modifié le tableau des instructions présent dans le fichier \verb+misc/isa.c+).
+Pour éviter des problèmes futurs, nous avons harmonisé le nombre d'octets sur lequel étaient codés les deux types d'instructions en passant celui des \verb+opl+ à 6 (pour ce faire, nous avons directement modifié le tableau des instructions présent dans le fichier \verb+misc/isa.c+).
 
 \subsubsection{Version séquentielle}
 \paragraph{}Cette première partie réalisée, nous avons modifié le fichier HCL de la version séquentielle en supprimant les opérandes \verb+IOPL+ à chaque fois qu'ils étaient accolés à des opérandes \verb+OPL+ afin d'éviter des doublons. En effet, leur {\itshape opcode} étant désormais identique, avoir un \verb+IOPL+ au même endroit qu'un \verb+OPL+ revenait à avoir 2 fois un \verb+OPL+.
 
-\paragraph{}Pour différencier une instruction \verb+iopl+ d'une instruction \verb+opl+, nous avons utilisé le chargement d'un registre en source A de l'ALU comme critère puisqu'une instruction \verb+opl+ prend en paramètre deux registres, tandis qu'\verb+iopl+ prend une constante et un registre. Ainsi, il faut indiquer au processeur que, durant la phase \verb+Execute+, si l'instruction utilise l'\verb+icode OPL+ et n'a préalablement pas chargé de registre en tant que source A (c'est-à-dire que \verb+rA+ est égal à \verb+RNONE+), alors on charge une constante en tant que source A de l'ALU.
+\paragraph{}Pour différencier une instruction \verb+iopl+ d'une instruction \verb+opl+, nous avons utilisé le chargement d'un registre en source A de l'ALU comme critère puisqu'une instruction \verb+opl+ prend en paramètre deux registres, tandis qu'\verb+iopl+ prend une constante et un registre. Ainsi, il a fallu indiquer au processeur que, durant la phase \verb+Execute+, si l'instruction utilise l'\verb+icode OPL+ et n'a préalablement pas chargé de registre en tant que source A (c'est-à-dire que \verb+rA+ est égal à \verb+RNONE+), alors on charge une constante en tant que source A de l'ALU.
 
-\paragraph{}On renvoie donc \verb+valC+ (qui correspond à une constante) plutôt que \verb+valA+ (qui correspond à un registre). Puisque le processeur n'est qu'un ensemble de \verb+if+/\verb+else+, \verb+valA+ ne sera renvoyé que si la condition ``pas de registre chargé en source A durant la phase \verb+Decode+'' est fausse.
+\paragraph{}On renvoie donc \verb+valC+ (qui correspond à une constante) plutôt que \verb+valA+ (qui correspond à la valeur d'un registre). Puisque le processeur n'est qu'un ensemble de \verb+if+/\verb+else+, \verb+valA+ ne sera renvoyé que si la condition ``pas de registre chargé en source A durant la phase \verb+Decode+'' est fausse.
 
 \subsubsection{Version pipelinée}
 \paragraph{}Nous avons modifié la version pipelinée de l'architecture de la même façon : après avoir supprimé les ``doublons'' \verb+IOPL+, nous avons modifié la phase \verb+Execute+ du processeur (au moment du chargement des sources de l'ALU) de sorte à ce qu'il teste si un registre n'a pas été chargé en tant que source A lors de la phase \verb+Decode+ (c'est-à-dire qu'il teste si \verb+E_srcA+ égale \verb+RNONE+). Le cas échéant, le processeur utilisera \verb+E_valC+ comme source de A de l'ALU ; sinon, il utilisera \verb+E_valA+.
@@ -87,7 +87,7 @@ Pour éviter des problèmes futurs, nous avons harmonisé le nombre d'octets sur
 \paragraph{}La factorisation de \verb+irmovl+ avec \verb+rrmovl+ s'est faite de la même manière que celle de \verb+iopl+ avec \verb+opl+. Nous avons dû à nouveau libérer un {\itshape opcode} (ici, \verb+I_IRMOVL+) puis  éditer le fichier \verb+misc/isa.c+ pour que l'instruction \verb+rrmovl+, normalement codée sur 2 bits, soit désormais codée sur 6 bits, à l'image de l'instruction \verb+irmovl+.
 
 \subsubsection{Versions séquentielle et pipelinée}
-\paragraph{}L'édition des fichiers HCL des versions séquentielle et pipelinée a également été strictement identique à celle effectuée pour la factorisation d'\verb+iopl+ avec \verb+opl+, à la différence près que l'\verb+icode+ testé était bien entendu \verb+rrmovl+ plutôt que \verb+opl+.
+\paragraph{}L'édition des fichiers HCL des versions séquentielle et pipelinée a également été strictement identique à celle effectuée pour la factorisation d'\verb+iopl+ avec \verb+opl+, à la différence près que l'\verb+icode+ testé était bien entendu \verb+RRMOVL+ et non plus \verb+OPL+.
 
 
 
@@ -97,7 +97,7 @@ Pour éviter des problèmes futurs, nous avons harmonisé le nombre d'octets sur
 \subsubsection{Approche générale}
 \paragraph{}Il nous a, dès le départ, semblé évident que l'option la plus intéressante était la factorisation par quadruplet. Cette dernière permettait en effet de rassembler quatre instructions sous la bannière d'un unique {\itshape opcode}, ce qui aurait alors engendré la libération de 3 {\itshape opcodes}. Néanmoins, la factorisation directe des 4 instructions nous paraissait fastidieuse. C'est pour cette raison que nous avons décidé de procéder en deux temps : nous allions d'abord factoriser par couples, et une fois cette factorisation faite, nous pourrions factoriser par quadruplet.
 
-\paragraph{}Pour déterminer quelle combinaison de couples (\verb+push/pop | call/ret+ ou \verb+push/call | pop/ret+) était la plus intéressante à utiliser, nous avons tout simplement étudié l'architecture séquentielle du processeur et effectué un comptage manuel des occurrences de chaque couple. Il est alors apparu que les couples qui revenaient le plus fréquemment étaient \verb+push/call+ et \verb+pop/ret+. Nous avons conséquemment décidé de factoriser les instructions suivant ce schéma.
+\paragraph{}Pour déterminer quelle combinaison de couples (\verb+push/pop | call/ret+ ou \verb+push/call | pop/ret+) était la plus intéressante à utiliser, nous avons tout simplement étudié l'architecture séquentielle du processeur et effectué un comptage manuel des occurrences de chaque couple. Il est alors apparu que les couples qui revenaient le plus fréquemment étaient \verb+push/call+ et \verb+pop/ret+. Nous avons conséquemment décidé de factoriser les instructions en suivant ce schéma.
 
 \paragraph{}Nous avons libéré deux {\itshape opcodes} (\verb+I_CALL+ et \verb+I_RET+, que nous avons respectivement renommés \verb+I_FREE3+ et \verb+I_FREE4+) comme nous l'avions fait lors des questions précédentes. En examinant plus attentivement le code de \verb+misc/isa.h+, nous avons remarqué plusieurs énumérations (marquées par des \verb+enum+) qui contenaient des instructions différentes pour un même {\itshape opcode}. Il y avait par exemple une énumération pour les différentes conditions de l'{\itshape opcode} \verb+I_JUMP+, ou pour les différentes opérations que pouvait effectuer l'ALU. 
 
@@ -120,16 +120,17 @@ Dans \verb+misc/isa.c+, nous avons également modifié le nombre d'octets sur le
 \item Si l'\verb+icode+ était égal à \verb+POPL+ et qu'il s'agissait bien d'un \verb+POP (J_POP)+, alors l'\verb+ifun+ était égal à \verb+POP_S+.
   \item Si l'\verb+icode+ était égal à \verb+PUSHL+ et qu'il s'agissait d'un \verb+RET (J_RET)+, alors l'\verb+ifun+ était égal à \verb+POP_F+.
 \end{itemize} 
-Ainsi, lorsque nous avions besoin de différencier un \verb+PUSH+ d'un \verb+CALL+, nous testions si son \verb+ifun+ était égal à \verb+PUSH_S+ ou à \verb+PUSH_F+. Nous procédions de la même manière pour \verb+POP+ et \verb+RET+.
+Ainsi, lorsque nous avions besoin de différencier un \verb+PUSH+ d'un \verb+CALL+, nous testions si son \verb+ifun+ était égal à \verb+PUSH_S+ ou à \verb+PUSH_F+. Nous avons procédé de la même manière pour \verb+POP+ et \verb+RET+.
 
 \paragraph{}Une fois les couples factorisés dans l'architecture séquentielle du processeur, nous sommes passés à la factorisation par quadruplet. Nous avons alors rassemblé nos deux énumérations en un seule et augmenté le nombre d'octets sur lequel étaient codés \verb+POP+ et \verb+RET+ (ils sont passés de 2 à 6 octets), puis nous avons libéré l'{\itshape opcode} \verb+I_POPL+ (décidant donc de factoriser toutes les instructions à l'aide de l'{\itshape opcode} \verb+I_PUSHL+).
 
 \paragraph{}La différenciation des différents opérandes s'est bien entendu faite à l'aide de l'\verb+ifun+, qui pouvait cette fois-ci prendre quatre valeurs différentes (\verb+PUSH_PU, PUSH_CA, PUSH_PO, PUSH_RE+) pour l'\verb+icode PUSHL+.
 
 \subsubsection{Version pipelinée}
-\paragraph{}Pour l'architecture pipelinée du processeur, nous avons directement factorisé les instructions par quadruplet, nous servant de notre architecture séquentielle comme modèle. Il s'agissait principalement d'adapter le code de la version séquentielle à la version pipelinée, ce qui s'est fait sans difficulté. Nous avons néanmoins dû rajouter un \verb+ifun+ pour l'étage \verb+Decode+ (\verb+D_ifun+) car il n'était pas défini dans le fichier HCL.
+\paragraph{}Pour l'architecture pipelinée du processeur, nous avons directement factorisé les instructions par quadruplet, nous servant de notre architecture séquentielle comme d'un modèle. Il s'agissait principalement d'adapter le code de la version séquentielle à la version pipelinée, ce qui s'est fait sans difficulté. Nous avons néanmoins dû rajouter un \verb+ifun+ pour l'étage \verb+Decode+ (\verb+D_ifun+) car il n'était pas défini dans le fichier HCL.
 
-\paragraph{}Après quelques recherches, nous avons pu retrouver la structure définissant les éléments de toutes les phases de l'architecture pipelinée dans le fichier \verb+pipe/stages.h+ et nous nous sommes aperçus qu'un champ pour l'\verb+ifun+ existait déjà sans être pour autant utilisé. Il nous a suffi de le rajouter dans le fichier HCL à l'aide d'un \verb+intsig D_ifun 'if_id_curr->ifun'+.
+\paragraph{}Après quelques recherches, nous avons pu retrouver la structure définissant les éléments de toutes les phases de l'architecture pipelinée dans le fichier \verb+pipe/stages.h+ et nous nous sommes aperçus qu'un champ pour l'\verb+ifun+ existait déjà sans être pour autant utilisé. Il nous a suffi de le rajouter dans le fichier HCL à l'aide d'un \verb+intsig D_ifun 'if_id_curr+\\
+\verb+->ifun'+.
 
 
 
@@ -141,15 +142,14 @@ Ainsi, lorsque nous avions besoin de différencier un \verb+PUSH+ d'un \verb+CAL
   rrmovl %esp, %ebp
 \end{verbatim}
 \end{quote}
-
-\paragraph{}Le principe de l'instruction sur plusieurs cycles est intimement lié à l'\verb+ifun+ puisqu'il s'agit de permettre au processeur d'injecter, de lui-même, des instructions aux comportement différents selon la valeur de l'\verb+ifun+, qui est croissante, à partir d'un unique \verb+icode+. Ainsi, il devient possible d'ajouter au processeur des instructions sur plusieurs cycles qui faciliteront grandement l'écriture de futurs programmes (il devient par exemple plus simple d'écrire un programme utilisant le cadre de pile à l'aide des instructions \verb+enter+ et \verb+leave+ qu'en faisant les \verb+pushl, popl+ et \verb+rrmovl+ adéquats).
+L'instruction sur plusieurs cycles est intimement liée à l'\verb+ifun+ puisqu'il s'agit de permettre au processeur d'injecter, de lui-même, des instructions aux comportement différents selon la valeur de l'\verb+ifun+ (qui est croissante) à partir d'un unique \verb+icode+. Ainsi, il devient possible d'ajouter au processeur des instructions sur plusieurs cycles qui faciliteront grandement l'écriture de futurs programmes (il devient par exemple plus simple d'écrire un programme utilisant le cadre de pile à l'aide des instructions \verb+enter+ et \verb+leave+ qu'en faisant les \verb+pushl, popl+ et \verb+rrmovl+ adéquats).
 
 \paragraph{}Cet exercice était extrêmement guidé : toutes les modifications à effectuer étaient données pas à pas. La difficulté de l'exercice ne résidait pas donc pas dans sa réalisation, mais bel et bien dans sa compréhension. De fait, bien comprendre les modifications faites durant cet exercice permettait de mieux appréhender l'exercice suivant.
 
 \subsection{Versions séquentielle et pipelinée}
 \paragraph{}Considérant que l'\verb+ifun+ allait pouvoir plusieurs valeurs pour la même instruction, il a d'abord fallu indiquer, dans les fichiers \verb+seq/seq-std.hcl+ et \verb+pipe/pipe-std.hcl+, quelle serait par défaut la valeur de l'\verb+ifun+ pour laquelle le processeur comprendrait que l'instruction en cours est finie et qu'il faut passer à la suivante. Ici, le processeur passe à l'instruction suivante après que l'\verb+ifun+ ait été égal à 1.
 
-\paragraph{}Il a ensuite fallu ajouter aux fichiers \verb+seq/ssim.c+ et \verb+pipe/psim.c+ un prototype de fonction qui renvoie la valeur de l'\verb+ifun+ au cycle suivant. Puis, nous avons géré, dans le code des fonctions \verb+sim_step+(pour la version séquentielle) et \verb+do_if_stage+ (pour la version pipelinée), le cas où il ne fallait pas passer à l'instruction suivante mais à l'\verb+ifun+ suivant (c'est-à-dire le cas où \verb+gen_instr_next_ifun() != 1+).
+\paragraph{}Il a ensuite fallu ajouter aux fichiers \verb+seq/ssim.c+ et \verb+pipe/psim.c+ un prototype de fonction qui renvoie la valeur de l'\verb+ifun+ au cycle suivant. Puis, nous avons géré, dans le code des fonctions \verb+sim_step+ (pour la version séquentielle) et \verb+do_if_stage+ (pour la version pipelinée), le cas où il ne fallait pas passer à l'instruction suivante mais à l'\verb+ifun+ suivant (c'est-à-dire le cas où \verb+gen_instr_next_ifun() != 1+).
 
 \paragraph{}Enfin, il a fallu s'occuper de la mise à jour du PC. Cette dernière ne devait s'effectuer que si le prochain \verb+ifun+ était égal à -1, c'est-à-dire uniquement si l'instruction en cours était terminée et qu'il fallait passer à la suivante. 
 
@@ -157,7 +157,7 @@ Ainsi, lorsque nous avions besoin de différencier un \verb+PUSH+ d'un \verb+CAL
 \subsubsection{Tests}
 \paragraph{}Avant de passer à l'exercice 3, il nous a semblé important d'effectuer quelques tests afin d'être certains que nous n'avions pas commis d'erreurs : le cas échéant, l'intégralité de l'exercice 3 n'aurait pu fonctionner.
 
-\paragraph{}Nous avons donc modifié, dans le \verb+instr_next_ifun+ de \verb+seq/seq-std.hcl+, les instructions factorisées \verb+PUSH/POP/CALL/RET+ de sorte à ce qu'un \verb+pushl registre+ soit immédiatement et automatiquement suivi d'un \verb+popl registre+ (par exemple, \verb+pushl %eax+ suivi de \verb+popl %eax+). Le comportement du simulateur nous semblant normal, nous avons pu passer à l'exercice suivant.
+\paragraph{}Nous avons donc modifié, dans le \verb+instr_next_ifun+ de \verb+seq/seq-std.+\\\verb+hcl+, les instructions factorisées \verb+PUSH/POP/CALL/RET+ de sorte à ce qu'un \verb+pushl registre+ soit immédiatement et automatiquement suivi d'un \verb+popl registre+ (par exemple, \verb+pushl %eax+ suivi de \verb+popl %eax+). Le comportement du simulateur nous semblant normal, nous avons pu passer à l'exercice suivant.
 
 \paragraph{}Nous avons vérifié plus tard, à l'aide de l'instruction \verb+enter+ de l'exercice 3, que le support des instructions sur plusieurs cycles était bien effectif. Le comportement du simulateur avec ces tests nous a confortés dans cette idée.
 
@@ -165,7 +165,7 @@ Ainsi, lorsque nous avions besoin de différencier un \verb+PUSH+ d'un \verb+CAL
 
 
 \section{Exercice 3}
-\paragraph{}Après avoir rajouté le support d'instructions sur plusieurs cycles aux versions séquentielle et pipelinée du processeur, cet exercice proposait de leur ajouter de nouvelles instructions, et plus particulièrement les instructions \verb+enter+ (déjà présentée précédemment) et \verb+mul+, qui permet d'effectueru une multiplication à partir de deux registres passés en paramètres.
+\paragraph{}Après avoir rajouté le support d'instructions sur plusieurs cycles aux versions séquentielle et pipelinée du processeur, cet exercice proposait d'y ajouter de nouvelles instructions, et plus particulièrement les instructions \verb+enter+ (déjà présentée précédemment) et \verb+mul+, qui permet d'effectuer une multiplication à partir de deux registres passés en paramètres.
 
 \subsection{Instruction enter}
 \paragraph{}Avant toute chose, il nous a fallu réserver un {\itshape opcode} (parmi ceux fraîchement libérés) pour l'instruction \verb+enter+. Nous avons donc renommé, dans \verb+misc/isa.h+, un {\itshape opcode} \verb+I_FREE+ en \verb+I_ENTER+. Nous avons ensuite suivi les instructions du sujet du projet, qui nous ont conduits à ajouter \verb+enter+ à la règle \verb+Instr+ (\verb+misc/yas-grammar.lex+), puis les instructions \verb+enter+ et \verb+enter1+, identiques en tout point hormis la valeur de leur \verb+ifun+, au tableau \verb+instruction_set+ (\verb+misc/isa.c+).
@@ -177,7 +177,7 @@ Ainsi, lorsque nous avions besoin de différencier un \verb+PUSH+ d'un \verb+CAL
 \end{itemize}
 
 \subsubsection{Version séquentielle}
-\paragraph{}Nous avons commencé par rajouter dans la version séquentielle la gestion de l'\verb+ifun : icode == ENTER && ifun == 0 : 1;+. Cette ligne indique que si l'\verb+ifun+ est à 0, une instruction \verb+enter1+ sera injectée par le processeur pour un \verb+ifun+ égal à 1. Comme nous avons indiqué, durant l'exercice 2 que, que la valeur de l'\verb+ifun+ venant après le 1 est par défaut -1 (qui signe la fin de l'instruction), nous n'avons pas besoin de rajouter de cas supplémentaires pour gérer l'\verb+ifun+.
+\paragraph{}Nous avons commencé par rajouter la gestion de l'\verb+ifun+  dans la version séquentielle : \verb+icode == ENTER && ifun == 0 : 1;+. Cette ligne indique que si l'\verb+ifun+ est à 0, une instruction \verb+enter1+ sera injectée par le processeur pour obtenir un \verb+ifun+ égal à 1 ; le processeur ne passera cependant pas à l'instruction suivante du programme. Comme nous avions déjà indiqué, durant l'exercice 2, que la valeur de l'\verb+ifun+ venant après le 1 était -1 (qui signe la fin de l'instruction) par défaut, nous n'avons pas eu besoin de rajouter des cas supplémentaires pour gérer l'\verb+ifun+.
 
 \paragraph{}Par la suite, nous avons procédé comme si nous voulions, dans un premier temps, ajouter l'instruction \verb+PUSHL+ : nous avons rajouté une instruction d'\verb+icode ENTER+ et d'\verb+ifun 0+ aux endroits nécessaires, en veillant simplement à ce que le registre utilisé comme source A soit le registre \verb+%ebp (REBP)+, et que le registre utilisé pour \verb+destE+ soit \verb+%esp (RESP)+.
 
@@ -201,7 +201,7 @@ Ainsi, lorsque nous avions besoin de différencier un \verb+PUSH+ d'un \verb+CAL
 \end{itemize}
 Une fois cela établi, nous avons pu attribuer à l'instruction un {\itshape opcode} et la rajouter à la règle \verb+Instr+. Puis, nous avons ajouté le triplet \verb+mul, mul1, mul2+ au tableau d'instructions (seule la valeur de l'\verb+ifun+ variait d'une instruction \verb+mul*+ à l'autre).
 
-\paragraph{}Nous avons également décidé de procéder à l'implémentation de \verb+mul+ étape par étape.
+\paragraph{}Nous avons également décidé de procéder à l'implémentation de \verb+mul+ de manière progressive.
 \begin{enumerate}
 \item Initialisation du registre \verb+%eax+ (cas \verb+icode == MUL && ifun == 0+).
 \item Soustraction (-1) au registre passé en second paramètre (cas \verb+icode+
@@ -222,7 +222,7 @@ icode == MUL && ifun == 2 && cc == 2 : -1;
 icode == MUL : 1;
 \end{verbatim}
 \end{quote}
-Nous avons ensuite implémenté l'instruction, étape par étape.
+Nous avons ensuite implémenté l'instruction, étape par étape, en effectuant des tests à l'issue de chacune d'entre elles pour être certains que notre implémentation était correcte.
 
 \paragraph{}Ni l'étage \verb+Fetch+, ni l'étage \verb+Decode+ ne nous a pas posé de problèmes. En effet, une fois les différents comportements attribués aux différents \verb+ifun+, il n'était pas compliqué d'implémenter l'instruction, encore moins en procédant étape par étape comme nous l'avons fait.
 
@@ -249,7 +249,8 @@ Cette version-ci de la fonction a parfaitement fonctionné. Peut-être était-ce
   \begin{verbatim}
 f_icode == MUL && f_ifun == 0 : 1;
 	f_icode == MUL && f_ifun == 1 : 2;
-	f_icode == MUL && f_ifun == 2 && (M_icode == MUL) && cc == 2 : -1;
+	f_icode == MUL && f_ifun == 2 &&
+           (M_icode == MUL) && cc == 2 : -1;
 	E_icode == MUL : 1;
 \end{verbatim}
 \end{quote}
@@ -261,15 +262,15 @@ f_icode == MUL && f_ifun == 0 : 1;
 
 
 \section*{Conclusion}
-\paragraph{}Ce projet s'est révélé être une véritable extension des Travaux Pratiques effectués en présentiel. En effet, le projet nous proposait de factoriser des instructions d'une part, et d'en implémenter de nouvelles, plus complexes car sur plusieurs cycles, d'autre part. Ce sont là deux choses que nous n'avions pas encore eu l'occasion de faire lors des TP et qui ont pourtant leur importance, puisqu'elles permettent d'étendre largement le processeur y86 et, par extension, de créer avec plus de facilité des programmes complexes.
+\paragraph{}Ce projet s'est révélé être une véritable extension des Travaux Pratiques effectués en présentiel. En effet, il nous proposait de factoriser des instructions d'une part, et d'en implémenter de nouvelles, plus complexes car sur plusieurs cycles, d'autre part. Ce sont là deux choses que nous n'avions pas encore eu l'occasion de faire lors des TP et qui ont pourtant leur importance, puisqu'elles permettent d'étendre largement le processeur y86 et, par extension, de créer avec plus de facilité des programmes complexes.
 
-\paragraph{}Cela a également été l'occasion pour nous de lever le voile sur certains points du fonctionnement du processeur qui nous semblaient peut-être, à l'issue des TP, encore obscurs : l'accomplissement des tâches du projet, plus complexes que celles des TP, nécessitait une compréhension pointue du processeur et de ce que nous modifiions, ce qui nous a conduits à nous pencher plus particulièrement sur certains aspects qui nous sembler toujours un peu abstraits.
+\paragraph{}Cela a également été l'occasion pour nous de lever le voile sur certains points du fonctionnement du processeur qui nous semblaient peut-être, à l'issue des TP, encore obscurs : l'accomplissement des tâches du projet, plus complexes que celles des TP, nécessitait une compréhension pointue du processeur et de ce que nous modifiions, ce qui nous a conduits à nous pencher plus particulièrement sur certains aspects qui nous semblaient toujours un peu abstraits.
 
 \paragraph{}Le bilan de ce projet est, pour nous, positif. Nous avons su réaliser l'intégralité des questions obligatoires dans le temps imparti et avons également pu faire une majorité de questions bonus. Outre le travail effectué sur le processeur y86 lui-même, ce projet a aussi été l'occasion de travailler en binôme, ce qui nous a conduit à utiliser des outils collaboratifs (GitHub dans notre cas) et à gérer la répartition du travail parmi les membres du binôme.
 
 \paragraph{}Si le projet a été intégralement réalisé à quatre mains jusqu'à la fin de l'implémentation de \verb+mul+, nous avons dû, par la suite et dans un souci de gain de temps, nous séparer. Ainsi, les questions bonus de l'exercice 3 ont été réalisées en parallèle de la rédaction du rapport.
 
-\paragraph{}L'objectif du projet était d'étendre le processeur y86 de façon à pouvoir lui faire exécuter des instructions sur plusieurs cycles. Nous considérons avoir atteint cet objectif. Qui plus est, le projet s'est déroulé dans une très bonne ambiance et, mieux encore, nous avons compris tout ce que nous avons fait. Ce projet est donc pour nous, tant sur le plan scolaire que le plan personnel, une réussite.
+\paragraph{}L'objectif du projet était d'étendre le processeur y86 de façon à pouvoir lui faire exécuter des instructions sur plusieurs cycles. Nous considérons l'avoir atteint. Qui plus est, le projet s'est déroulé dans une très bonne ambiance et, mieux encore, nous avons compris tout ce que nous avons fait. Ce projet est donc pour nous, tant sur le plan scolaire que le plan personnel, une réussite.
 
 
 
