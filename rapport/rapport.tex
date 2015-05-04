@@ -39,7 +39,7 @@
 \newpage
 
 \section*{Introduction}
-\paragraph{}Dans le cadre de l'Unité d'Enseignement ``Architecture des Ordinateurs'' (INF 155), il nous a été demandé de réaliser un projet consistant à modifier les fichiers sources de l'architecture du processeur y86, qui est elle-même une version simplifiée de l'architecture du processeur x86, de sorte à étendre le processeur. Ces modifications devaient être effectuées tant sur la version {\itshape séquentielle} que sur la version {\itshape pipelinée} de l'architecture.
+\paragraph{}Dans le cadre de l'Unité d'Enseignement ``Architecture des Ordinateurs'' (INF 155), il nous a été demandé de réaliser un projet consistant à modifier les fichiers sources de l'architecture du processeur y86, qui est une version simplifiée de l'architecture du processeur x86, de sorte à étendre le processeur. Ces modifications devaient être effectuées tant sur la version {\itshape séquentielle} que sur la version {\itshape pipelinée} de l'architecture.
 
 \paragraph{}Le projet était constitué de trois parties, présentées sous forme d'exercices.
 
@@ -72,7 +72,7 @@ Pour éviter des problèmes futurs, nous avons harmonisé le nombre d'octets sur
 \subsubsection{Version séquentielle}
 \paragraph{}Cette première partie réalisée, nous avons modifié le fichier HCL de la version séquentielle en supprimant les opérandes \verb+IOPL+ à chaque fois qu'ils étaient accolés à des opérandes \verb+OPL+ afin d'éviter des doublons. En effet, leur {\itshape opcode} étant désormais identique, avoir un \verb+IOPL+ au même endroit qu'un \verb+OPL+ revenait à avoir 2 fois un \verb+OPL+.
 
-\paragraph{}Pour différencier une instruction \verb+iopl+ d'une instruction \verb+opl+, nous avons utilisé le chargement d'un registre en source A de l'ALU comme critère puisqu'une instruction \verb+opl+ prend en paramètre deux registres, tandis qu'\verb+iopl+ prend une constante et un registre. Ainsi, il a fallu indiquer au processeur que, durant la phase \verb+Execute+, si l'instruction utilise l'\verb+icode OPL+ et n'a préalablement pas chargé de registre en tant que source A (c'est-à-dire que \verb+rA+ est égal à \verb+RNONE+), alors on charge une constante en tant que source A de l'ALU.
+\paragraph{}Pour différencier une instruction \verb+iopl+ d'une instruction \verb+opl+, nous avons utilisé le chargement d'un registre en source A de l'ALU comme critère puisqu'une instruction \verb+opl+ prend en paramètre deux registres, tandis qu'\verb+iopl+ prend une constante et un registre. Ainsi, il a fallu indiquer au processeur que, durant la phase \verb+Execute+, si l'instruction utilise l'\verb+icode OPL+ et n'utilise pas de registre en tant que premier paramètre (c'est-à-dire que \verb+rA+ est égal à \verb+RNONE+), alors on charge une constante en tant que source A de l'ALU.
 
 \paragraph{}On renvoie donc \verb+valC+ (qui correspond à une constante) plutôt que \verb+valA+ (qui correspond à la valeur d'un registre). Puisque le processeur n'est qu'un ensemble de \verb+if+/\verb+else+, \verb+valA+ ne sera renvoyé que si la condition ``pas de registre chargé en source A durant la phase \verb+Decode+'' est fausse.
 
@@ -111,14 +111,14 @@ typedef enum { J_POP, J_RET } pop_t;
 Dans \verb+misc/isa.c+, nous avons également modifié le nombre d'octets sur lequel étaient codées les instructions. Ainsi, \verb+push+ et \verb+call+ sont passées à 6 octets (initialement codées sur 2 et 5 octets) tandis que \verb+pop+ et \verb+ret+ sont passées à 2 octets (initialement codées sur 2 et 1 octets).
 
 \subsubsection{Version séquentielle}
-\paragraph{}Après avoir défini \verb+J_PUSH, J_CALL, J_POP+ et \verb+J_RET+ dans le fichier de l'architecture séquentielle (à l'aide d'\verb+intsig+), nous avons factorisé les couples comme nous l'avions fait pour les questions précédentes : nous avons commencé par supprimer les ``doublons'' (les \verb+CALL+ étant maintenant confondus avec les \verb+PUSH+, et les \verb+RET+ l'étant avec les \verb+POP+), puis nous avons différencié, lorsque c'était nécessaire, les \verb+CALL+ des \verb+PUSH+ et les \verb+RET+ des \verb+POP+ en nous servant cette fois de l'\verb+ifun+.
+\paragraph{}Après avoir défini \verb+J_PUSH, J_CALL, J_POP+ et \verb+J_RET+ dans le fichier de l'architecture séquentielle, nous avons factorisé les couples comme nous l'avions fait pour les questions précédentes : nous avons commencé par supprimer les ``doublons'' (les \verb+CALL+ étant maintenant confondus avec les \verb+PUSH+, et les \verb+RET+ l'étant avec les \verb+POP+), puis nous avons différencié, lorsque c'était nécessaire, les \verb+CALL+ des \verb+PUSH+ et les \verb+RET+ des \verb+POP+ en nous servant cette fois de l'\verb+ifun+.
 
-\paragraph{}En effet, grâce à nos énumérations, l'\verb+ifun+ pouvait prendre des valeurs différentes, d'après ce que nous avions défini {\itshape via} \verb+intsig+ :
+\paragraph{}En effet, grâce à nos énumérations, l'\verb+ifun+ pouvait prendre des valeurs différentes, d'après ce que nous avions défini :
 \begin{itemize}
-\item Si l'\verb+icode+ était égal à \verb+PUSHL+ et qu'il s'agissait bien d'un \verb+PUSH (J_PUSH)+, alors l'\verb+ifun+ était égal à \verb+PUSH_S+.
-\item Si l'\verb+icode+ était égal à \verb+PUSHL+ et qu'il s'agissait d'un \verb+CALL (J_CALL)+, alors l'\verb+ifun+ était égal à \verb+PUSH_F+.
-\item Si l'\verb+icode+ était égal à \verb+POPL+ et qu'il s'agissait bien d'un \verb+POP (J_POP)+, alors l'\verb+ifun+ était égal à \verb+POP_S+.
-  \item Si l'\verb+icode+ était égal à \verb+PUSHL+ et qu'il s'agissait d'un \verb+RET (J_RET)+, alors l'\verb+ifun+ était égal à \verb+POP_F+.
+\item Si l'\verb+icode+ était égal à \verb+PUSHL+ et que l'\verb+ifun+ était était égal à \verb+PUSH_S+, alors il s'agissait bien d'un \verb+PUSH+.
+\item Si l'\verb+icode+ était égal à \verb+PUSHL+ et que l'\verb+ifun+ était était égal à \verb+PUSH_F+, alors il s'agissait bien d'un \verb+CALL+.
+\item Si l'\verb+icode+ était égal à \verb+POPL+ et que l'\verb+ifun+ était était égal à \verb+POP_D+, alors il s'agissait bien d'un \verb+POP+.
+  \item Si l'\verb+icode+ était égal à \verb+PUSHL+ et que l'\verb+ifun+ était était égal à \verb+POP_F+, alors il s'agissait bien d'un \verb+RET+.
 \end{itemize} 
 Ainsi, lorsque nous avions besoin de différencier un \verb+PUSH+ d'un \verb+CALL+, nous testions si son \verb+ifun+ était égal à \verb+PUSH_S+ ou à \verb+PUSH_F+. Nous avons procédé de la même manière pour \verb+POP+ et \verb+RET+.
 
@@ -129,8 +129,9 @@ Ainsi, lorsque nous avions besoin de différencier un \verb+PUSH+ d'un \verb+CAL
 \subsubsection{Version pipelinée}
 \paragraph{}Pour l'architecture pipelinée du processeur, nous avons directement factorisé les instructions par quadruplet, nous servant de notre architecture séquentielle comme d'un modèle. Il s'agissait principalement d'adapter le code de la version séquentielle à la version pipelinée, ce qui s'est fait sans difficulté. Nous avons néanmoins dû rajouter un \verb+ifun+ pour l'étage \verb+Decode+ (\verb+D_ifun+) car il n'était pas défini dans le fichier HCL.
 
-\paragraph{}Après quelques recherches, nous avons pu retrouver la structure définissant les éléments de toutes les phases de l'architecture pipelinée dans le fichier \verb+pipe/stages.h+ et nous nous sommes aperçus qu'un champ pour l'\verb+ifun+ existait déjà sans être pour autant utilisé. Il nous a suffi de le rajouter dans le fichier HCL à l'aide d'un \verb+intsig D_ifun 'if_id_curr+\\
-\verb+->ifun'+.
+\paragraph{}Après quelques recherches, nous avons pu retrouver la structure définissant les éléments de toutes les phases de l'architecture pipelinée dans le fichier \verb+pipe/stages.h+ et nous nous sommes aperçus qu'un champ pour l'\verb+ifun+ existait déjà sans être pour autant utilisé. Il nous a suffi de le rajouter dans le fichier HCL à l'aide de :
+
+\verb+intsig D_ifun 'if_id_curr->ifun'+
 
 
 
@@ -213,7 +214,7 @@ Une fois cela établi, nous avons pu attribuer à l'instruction un {\itshape opc
 \end{enumerate}
 
 \subsubsection{Version séquentielle}
-\paragraph{}Après avoir défini, avec des \verb+intsig+, \verb+MUL, REAX+ et \verb+cc+, nous avons ajouté les différents cas possibles concernant l'\verb+ifun+, à savoir :
+\paragraph{}Après avoir défini, \verb+MUL, REAX+ et \verb+cc+, nous avons ajouté les différents cas possibles concernant l'\verb+ifun+, à savoir :
 \begin{quote}
 \begin{verbatim}
 icode == MUL && ifun == 0 : 1;
@@ -257,6 +258,40 @@ f_icode == MUL && f_ifun == 0 : 1;
 
 
 \subsection{Instructions lods/stos/movs (bonus)}
+\paragraph{}L'instruction \verb+lods+ permait de lire en mémoire l'adresse d'\verb+%esi+, puis de stocker ce résultat dans \verb+%eax+ avant d'ajouter 4 au pointeur \verb+%esi+. L'instruction \verb+stos+, quant à elle, écrit le contenu du registre \verb+%eax+ à l'adresse \verb+%edi+, puis ajoute 4 au pointeur \verb+%edi+. Enfin, \verb+movs+ lit en mémoire l'adresse \verb+%esi+, écrit la valeur en mémoire à l'adresse \verb+%edi+ avant d'ajouter 4 à \verb+%esi+ et \verb+%edi+ ; le registre \verb+%eax+ sert alors d'intermédiaire.
+
+
+\subsubsection{Instructions lods et stos}
+\paragraph{}Les instructions \verb+lods+ et \verb+stos+ étant relativement semblables, nous avons décidé de les implémenter en même temps et des les factoriser l'une avec l'autre. A l'image de ce que nous avions fait pour factoriser les instructions \verb+push/pop/call/ret+, nous avons donc rajouté une énumération dans \verb+misc/isa.h+ (de sorte à pouvoir différencier un \verb+lods+ d'un \verb+stos+ à l'aide de l'\verb+ifun+) et renommé un {\itshape opcode} que nous avions libéré en \verb+I_LODS+.
+
+\paragraph{}Dans les fichiers HCL, il nous a fallu rajouter les définitions des registres \verb+%esi (REG_ESI ; intsig RESI 'REG_ESI')+ et \verb+%edi (REG_EDI ; intsig REDI 'REG_EDI')+. L'implémentation de ces deux instructions dans la version séquentielle s'est faite aisément puisqu'une fois les instructions ajoutées au tableau d'\verb+misc/isa.c+, il n'y avait aucune difficulté particulière. L'implémentation dans la version pipelinée n'a pas été foncièrement plus compliquée : jouer avec l'\verb+ifun+ était suffisant.
+
+
+
+\subsubsection{Instruction movs}
+\paragraph{}On peut décomposer l'instruction \verb+movs+ en quatre temps :
+\begin{enumerate}
+\item On sauvegarde le registre \verb+%eax+ (\verb+pushl %eax+).
+\item On copie le contenu de l'adresse \verb+%esi+ dans \verb+%eax+, puis on ajoute 4 à \verb+%esi+ (\verb+lods+).
+\item On enregistre en mémoire le contenu de \verb+%eax+ à l'adresse \verb+%edi+, puis on lui ajoute 4 (\verb+stos+).
+\item On restaure le registre \verb+%eax+ (\verb+popl %eax+).
+\end{enumerate}
+
+\paragraph{Version séquentielle}De fait, pour la version séquentielle du processeur, nous avons utilisé quatre valeurs d'\verb+ifun+ différentes. La source B sera, quelle que soit la valeur de l'\verb+ifun+, le registre \verb+%eax+. La source A, quant à elle, sera le registre indiquant la zone de mémoire sur laquelle va travailler l'instruction. Ainsi :
+\begin{itemize}
+\item Pour un \verb+ifun == 0+, ce sera \verb+%esp (RESP)+ (cas du \verb+pushl %eax+).
+\item Pour un \verb+ifun == 1+, ce sera \verb+%esi (RESI)+ (cas du \verb+lods+).
+\item Pour un \verb+ifun == 2+, ce sera \verb+%edi (REDI)+ (cas du \verb+stos+).
+\end{itemize}
+A chaque fois, la source A sera modifiée en fonction de la valeur de l'\verb+ifun+.
+
+\paragraph{}Une fois cela établi, le reste de l'implémentation de \verb+movs+ dans la version séquentielle est simple : il suffit de se calquer, selon l'\verb+ifun+, sur la façon dont les instructions \verb+pushl, lods, stos+ et \verb+popl+ sont respectivement implémentées.
+
+\paragraph{}L'implémentation de l'instruction dans la version pipelinée s'est avérée plus compliquée. Nous avons été obligés d'utiliser deux instructions plutôt qu'une pour faire le \verb+stos+, ce qui induit la présence d'un \verb+ifun+ supplémentaire (pour un total de 5 \verb+ifun+).
+
+\paragraph{Version pipelinée}Dans la version pipelinée, on ne peut pas avoir accès, à l'étage \verb+Memory+, à la source B. Ainsi, lorsque le processeur injecte une instruction \verb+pushl+ ou \verb+stos+ (c'est-à-dire quand on écrit en mémoire), il faut obligatoirement passer \verb+%eax+ en source A afin de pouvoir écrire dedans lors de la phase \verb+Memory+. Les registres \verb+%esp, %esi+ et \verb+%edi+ sont dans ces cas-là utilisés en tant que source B (la valeur de l'\verb+ifun+ déterminant, bien entendu, lequel de ces registres est utilisé) ; sinon, ils sont passés en source A ainsi qu'en source B. Nous avons également dû veiller à ce que le simulateur n'injecte pas de bulles non souhaitées.
+
+\paragraph{}Ces paramètres pris en considération, le reste de l'implémentation en version pipelinée s'est relativement bien déroulé.
 
 
 
@@ -271,7 +306,5 @@ f_icode == MUL && f_ifun == 0 : 1;
 \paragraph{}Si le projet a été intégralement réalisé à quatre mains jusqu'à la fin de l'implémentation de \verb+mul+, nous avons dû, par la suite et dans un souci de gain de temps, nous séparer. Ainsi, les questions bonus de l'exercice 3 ont été réalisées en parallèle de la rédaction du rapport.
 
 \paragraph{}L'objectif du projet était d'étendre le processeur y86 de façon à pouvoir lui faire exécuter des instructions sur plusieurs cycles. Nous considérons l'avoir atteint. Qui plus est, le projet s'est déroulé dans une très bonne ambiance et, mieux encore, nous avons compris tout ce que nous avons fait. Ce projet est donc pour nous, tant sur le plan scolaire que le plan personnel, une réussite.
-
-
 
 \end{document}
